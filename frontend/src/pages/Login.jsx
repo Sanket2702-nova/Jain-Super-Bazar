@@ -111,14 +111,18 @@ export default function Login() {
                   }}/>
                   <input
                     type="text"
+                    id="username"
+                    name="username"
                     className="form-input"
                     style={{ paddingLeft:40 }}
                     placeholder="Enter username"
                     value={username}
                     onChange={e => setUsername(e.target.value)}
+                    autoComplete="username"
                     autoFocus
                     required
                   />
+
                 </div>
               </div>
 
@@ -132,13 +136,17 @@ export default function Login() {
                   }}/>
                   <input
                     type={showPass ? 'text' : 'password'}
+                    id="password"
+                    name="password"
                     className="form-input"
                     style={{ paddingLeft:40, paddingRight:42 }}
                     placeholder="••••••••"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
+                    autoComplete="current-password"
                     required
                   />
+
                   <button type="button"
                     onClick={() => setShowPass(p => !p)}
                     style={{
