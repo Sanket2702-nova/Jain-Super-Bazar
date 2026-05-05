@@ -259,17 +259,49 @@ export default function AdminDashboard() {
 
 
           {printMode === 'report' && sortedDenoms.length > 0 && (
-            <div style={{ marginTop: '30px' }}>
-              <p style={{ margin: '0 0 8px 0', fontSize: '9pt', fontWeight: 'bold' }}>Currency Distribution (Aggregated)</p>
-              <table className="photo-exact-ledger" style={{ width: '40%' }}>
-                <thead><tr><th>DENOM</th><th>QTY</th><th style={{ textAlign: 'right' }}>TOTAL</th></tr></thead>
-                <tbody>
-                  {sortedDenoms.map((d, i) => (<tr key={i}><td>₹ {d.denom}</td><td>{d.qty}</td><td style={{ textAlign: 'right' }}>{fmt(d.total)}</td></tr>))}
-                  <tr style={{ fontWeight: 'bold' }}><td colSpan={2} style={{ textAlign: 'right' }}>TOTAL CASH:</td><td style={{ textAlign: 'right' }}>₹ {fmt(totalCash)}</td></tr>
-                </tbody>
-              </table>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginTop: '30px' }}>
+              {/* Currency Dist */}
+              <div>
+                <p style={{ margin: '0 0 8px 0', fontSize: '9pt', fontWeight: 'bold' }}>Currency Distribution</p>
+                <table className="photo-exact-ledger">
+                  <thead><tr><th>DENOM</th><th>QTY</th><th style={{ textAlign: 'right' }}>TOTAL</th></tr></thead>
+                  <tbody>
+                    {sortedDenoms.map((d, i) => (<tr key={i}><td>₹ {d.denom}</td><td>{d.qty}</td><td style={{ textAlign: 'right' }}>{fmt(d.total)}</td></tr>))}
+                    <tr style={{ fontWeight: 'bold' }}><td colSpan={2} style={{ textAlign: 'right' }}>TOTAL:</td><td style={{ textAlign: 'right' }}>{fmt(totalCash)}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Expense Details */}
+              <div>
+                <p style={{ margin: '0 0 8px 0', fontSize: '9pt', fontWeight: 'bold' }}>Detailed Expenses</p>
+                <table className="photo-exact-ledger">
+                  <thead><tr><th>BRANCH</th><th>DESC</th><th style={{ textAlign: 'right' }}>AMT</th></tr></thead>
+                  <tbody>
+                    {allExps.length > 0 ? allExps.map((e, i) => (
+                      <tr key={i}><td>{e.branch}</td><td>{e.desc}</td><td style={{ textAlign: 'right' }}>{fmt(e.amount)}</td></tr>
+                    )) : <tr><td colSpan={3} style={{ textAlign: 'center' }}>No expenses</td></tr>}
+                    <tr style={{ fontWeight: 'bold' }}><td colSpan={2} style={{ textAlign: 'right' }}>TOTAL:</td><td style={{ textAlign: 'right' }}>{fmt(totalExp)}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Cheque Details */}
+              <div>
+                <p style={{ margin: '0 0 8px 0', fontSize: '9pt', fontWeight: 'bold' }}>Detailed Cheques</p>
+                <table className="photo-exact-ledger">
+                  <thead><tr><th>BRANCH</th><th>CHQ NO</th><th style={{ textAlign: 'right' }}>AMT</th></tr></thead>
+                  <tbody>
+                    {allCheques.length > 0 ? allCheques.map((c, i) => (
+                      <tr key={i}><td>{c.branch}</td><td>#{c.cheque_no}</td><td style={{ textAlign: 'right' }}>{fmt(c.amount)}</td></tr>
+                    )) : <tr><td colSpan={3} style={{ textAlign: 'center' }}>No cheques</td></tr>}
+                    <tr style={{ fontWeight: 'bold' }}><td colSpan={2} style={{ textAlign: 'right' }}>TOTAL:</td><td style={{ textAlign: 'right' }}>{fmt(totalChq)}</td></tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
+
         </div>
       </div>
 
