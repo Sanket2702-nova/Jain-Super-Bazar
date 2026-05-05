@@ -170,13 +170,14 @@ export default function AdminDashboard() {
     // Aggregated Expenses
     const eList = parseJSON(r.expense_desc);
     if (Array.isArray(eList)) {
-      eList.forEach(e => allExps.push({ ...e, branch: r.branch_name, date: r.report_date }));
+      eList.forEach(e => allExps.push({ ...e, branch: r.branch_name, date: r.report_date, shift: r.shift }));
     }
     
     // Aggregated Cheques
     if (Array.isArray(r.cheques)) {
-      r.cheques.forEach(c => allCheques.push({ ...c, branch: r.branch_name, date: r.report_date }));
+      r.cheques.forEach(c => allCheques.push({ ...c, branch: r.branch_name, date: r.report_date, shift: r.shift }));
     }
+
   });
 
 
@@ -322,11 +323,12 @@ export default function AdminDashboard() {
           <div style={{ maxHeight: 200, overflowY: 'auto' }}>
             {allExps.length > 0 ? allExps.map((e, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
-                <span style={{ fontSize: '0.85rem' }}>{e.desc} ({e.branch})</span>
+                <span style={{ fontSize: '0.85rem' }}>{e.desc} ({e.branch} - S{e.shift})</span>
                 <span style={{ color: '#ef4444', fontWeight: 600 }}>₹{fmt(e.amount)}</span>
               </div>
             )) : <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No expenses found</p>}
           </div>
+
         </div>
 
         <div className="glass-card" style={{ padding: '1.5rem' }}>
@@ -339,12 +341,13 @@ export default function AdminDashboard() {
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>#{c.cheque_no}</span>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{c.branch}</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{c.branch} - S{c.shift}</span>
                 </div>
                 <span style={{ color: '#f59e0b', fontWeight: 600 }}>₹{fmt(c.amount)}</span>
               </div>
             )) : <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No cheques found</p>}
           </div>
+
         </div>
 
       </div>
