@@ -379,7 +379,7 @@ export default function AdminDashboard() {
       <style>{`
         .print-template { display: none; }
         @media print {
-          @page { size: landscape; margin: 5mm; }
+          @page { size: ${printMode === 'report' ? 'landscape' : 'portrait'}; margin: 5mm; }
           * { background: white !important; color: black !important; box-shadow: none !important; -webkit-print-color-adjust: exact; }
           html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
           .no-print { display: none !important; }
@@ -388,11 +388,12 @@ export default function AdminDashboard() {
             width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; border: 0.5pt solid black;
           }
           .photo-exact-ledger th, .photo-exact-ledger td {
-            border: 0.5pt solid black; padding: 4pt 2pt; text-align: left; font-size: 7.5pt; color: black;
+            border: 0.5pt solid black; padding: 4pt 2pt; text-align: left; font-size: ${printMode === 'report' ? '7.5pt' : '9pt'}; color: black;
           }
           .photo-exact-ledger th { font-weight: bold; text-align: center; background: #f0f0f0 !important; }
         }
       `}</style>
+
 
     </>
   );
