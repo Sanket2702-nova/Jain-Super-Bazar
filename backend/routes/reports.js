@@ -6,7 +6,7 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 
-if (!fs.existsSync('uploads')) {
+if (!process.env.VERCEL && !fs.existsSync('uploads')) {
     fs.mkdirSync('uploads');
 }
 
