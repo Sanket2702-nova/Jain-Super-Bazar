@@ -111,6 +111,14 @@ export default function BranchDashboard() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!systemTotal) { setMessage({type:'error',text:'System Total is required!'}); return; }
+    
+    // Validate Cheques: If amount is entered, cheque_no must be present
+    const invalidCheque = cheques.find(c => c.amount && !c.cheque_no);
+    if (invalidCheque) {
+      setMessage({type:'error', text:'⚠️ Cheque Number is required for all entered cheques!'});
+      return;
+    }
+
     setLoading(true); setMessage(null);
     const fd = new FormData();
     fd.append('branch_id', user.branch_id);
