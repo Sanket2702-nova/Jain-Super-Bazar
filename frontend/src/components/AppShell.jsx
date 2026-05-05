@@ -57,10 +57,12 @@ export default function AppShell({ children, user }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.25rem 0.5rem 1.5rem' }}>
         <div style={{
           width: 38, height: 38, borderRadius: 11, flexShrink: 0,
-          background: isAdmin ? 'linear-gradient(135deg,#6366f1,#a78bfa)' : 'linear-gradient(135deg,#10b981,#06b6d4)',
+          background: 'linear-gradient(135deg, var(--primary), var(--primary-light))',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: isAdmin ? '0 4px 14px rgba(99,102,241,0.45)' : '0 4px 14px rgba(16,185,129,0.4)'
+          boxShadow: '0 4px 14px rgba(99,102,241,0.4)'
         }}>
+
+
           <IndianRupee size={18} color="#fff" />
         </div>
         <div>

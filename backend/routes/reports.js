@@ -51,7 +51,16 @@ router.post('/', auth, upload.any(), async (req, res) => {
         }
 
         if (!Array.isArray(parsedCheques)) parsedCheques = [];
+        
+        // Strict Validation: If either cheque_no or amount is provided, both must be valid.
+        for (const c of parsedCheques) {
+            if ((c.amount && !c.cheque_no) || (!c.amount && c.cheque_no)) {
+                return res.status(400).json({ error: 'Incomplete cheque details: Both number and amount are required.' });
+            }
+        }
+
         const validCheques = parsedCheques.filter(c => c && c.cheque_no && (parseFloat(c.amount) >= 0));
+
 
         let total_cash = 0;
         parsedDenoms.forEach(d => { total_cash += parseFloat(d.total || 0); });

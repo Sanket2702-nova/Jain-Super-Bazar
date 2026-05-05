@@ -22,7 +22,9 @@ export default function BranchDashboard() {
   const [submittedShifts, setSubmittedShifts] = useState([]);
   const [isLocked, setIsLocked] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(null); // {type:'success'|'error', text}
+   const [message, setMessage] = useState(null); // {type:'success'|'error', text}
+   const [modal, setModal] = useState(null); // {type:'error'|'success', title, text}
+
 
   const [denoms, setDenoms] = useState(DENOMS.map(d => ({ denomination:d, quantity:0, total:0 })));
   const [systemTotal, setSystemTotal] = useState('');
@@ -38,8 +40,10 @@ export default function BranchDashboard() {
     (async () => {
       try {
         const res = await axios.get(`${API}/reports?date=${date}`, { headers:headers() });
-        const done = res.data.map(r => r.shift);
+        const reports = Array.isArray(res.data) ? res.data : [];
+        const done = reports.map(r => r.shift);
         setSubmittedShifts(done);
+
         if (done.includes(shift)) setIsLocked(true);
         else {
           setIsLocked(false);
@@ -112,12 +116,18 @@ export default function BranchDashboard() {
     e.preventDefault();
     if (!systemTotal) { setMessage({type:'error',text:'System Total is required!'}); return; }
     
-    // Validate Cheques: If amount is entered, cheque_no must be present
-    const invalidCheque = cheques.find(c => c.amount && !c.cheque_no);
-    if (invalidCheque) {
-      setMessage({type:'error', text:'⚠️ Cheque Number is required for all entered cheques!'});
+    // Validate Cheques: If either amount or cheque_no is entered, both must be present
+    const incompleteCheque = cheques.find(c => (c.amount && !c.cheque_no) || (!c.amount && c.cheque_no));
+    if (incompleteCheque) {
+      setModal({
+        type: 'error',
+        title: 'Incomplete Cheque Data',
+        text: '⚠️ Both Cheque Number and Amount are required for any cheque entry you add. Please fill both or remove the entry.'
+      });
       return;
     }
+
+
 
     setLoading(true); setMessage(null);
     const fd = new FormData();
@@ -398,7 +408,41 @@ export default function BranchDashboard() {
           </motion.div>
         </form>
       )}
+      {/* Bigly Modal Popup */}
+      <AnimatePresence>
+        {modal && (
+          <div className="modal-overlay" onClick={() => setModal(null)}>
+            <motion.div 
+              initial={{ scale: 0.8, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0, y: 20 }}
+              className="modal-box"
+              style={{ maxWidth: 450, textAlign: 'center', borderTop: `5px solid ${modal.type === 'error' ? 'var(--danger)' : 'var(--success)'}` }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>
+                {modal.type === 'error' ? '❌' : '✅'}
+              </div>
+              <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>
+                {modal.title}
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '2rem', fontSize: '1.05rem' }}>
+                {modal.text}
+              </p>
+              <button 
+                className="btn-primary" 
+                style={{ width: '100%', padding: '0.8rem' }}
+                onClick={() => setModal(null)}
+              >
+                Understood
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+
     </div>
   );
 }

@@ -57,11 +57,13 @@ export default function AdminDashboard() {
       let url = `${API}/reports?`;
       if (dateFilter) url += `date=${dateFilter}&`;
       const res = await axios.get(url, { headers: auth() });
-      let data = res.data;
-      if (branchFilter) data = data.filter(r => r.branch_name === branchFilter);
-      setReports(data);
-      const uniq = [...new Set(res.data.map(r => r.branch_name).filter(Boolean))];
+      const data = Array.isArray(res.data) ? res.data : [];
+      let filteredData = data;
+      if (branchFilter) filteredData = data.filter(r => r.branch_name === branchFilter);
+      setReports(filteredData);
+      const uniq = [...new Set(data.map(r => r.branch_name).filter(Boolean))];
       setBranchNames(uniq);
+
     } catch (e) {
       console.error('fetchReports', e);
     } finally {
