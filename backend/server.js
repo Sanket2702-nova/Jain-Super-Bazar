@@ -22,8 +22,12 @@ app.use('/api/reports', reportRoutes);
 app.use('/uploads', express.static('uploads')); // For proof images
 
 app.use((err, req, res, next) => {
-    console.error('GLOBAL ERROR:', err);
-    res.status(500).json({ error: err.message || 'Internal Server Error' });
+    console.error('CRITICAL GLOBAL ERROR:', err);
+    res.status(500).json({ 
+        error: 'Internal Server Error: ' + err.message,
+        path: req.path,
+        method: req.method
+    });
 });
 
 const PORT = process.env.PORT || 5000;

@@ -51,8 +51,12 @@ router.post('/login', async (req, res) => {
 
         res.json({ token, user: { id: user.id, username: user.username, role: user.role, branch_id: user.branch_id, branch_name: branchName } });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Server error' });
+        console.error('LOGIN ROUTE CRASH:', err);
+        res.status(500).json({ 
+            error: 'Server error: ' + err.message,
+            details: err.toString(),
+            stack: process.env.NODE_ENV === 'production' ? null : err.stack 
+        });
     }
 });
 
