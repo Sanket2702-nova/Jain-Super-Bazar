@@ -208,8 +208,9 @@ export default function AdminDashboard() {
             <thead>
               {printMode === 'report' ? (
                 <tr>
-                  <th>DATE</th><th>BRANCH</th><th>SHIFT</th><th>CASH</th><th>UPI/CARD</th><th>CREDIT NOTE</th><th>SODEXO</th><th>CHQ</th><th>DIFF</th><th style={{ textAlign: 'right' }}>TOTAL</th>
+                  <th>DATE</th><th>BRANCH</th><th>SHIFT</th><th>CASH</th><th>UPI/CARD</th><th>CN</th><th>SODEXO</th><th>CHQ</th><th>EXPENSE</th><th>SYS TOTAL</th><th>DIFF</th><th style={{ textAlign: 'right' }}>TOTAL</th>
                 </tr>
+
               ) : printMode === 'expense' ? (
                 <tr><th>DATE</th><th>BRANCH</th><th>DESCRIPTION</th><th style={{ textAlign: 'right' }}>AMOUNT</th></tr>
               ) : (
@@ -222,8 +223,11 @@ export default function AdminDashboard() {
                   <tr key={i}>
                     <td>{r.report_date}</td><td>{r.branch_name}</td><td style={{ textAlign: 'center' }}>S{r.shift}</td>
                     <td>{fmt(r.total_cash)}</td><td>{fmt(r.card_upi_total)}</td><td>{fmt(r.credit_note_total)}</td><td>{fmt(r.sodexo_total)}</td><td>{fmt(r.cheque_total)}</td>
-                    <td>{fmt(+r.grand_total - +r.system_total)}</td>
+                    <td style={{ color: '#ef4444' }}>{fmt(r.expense)}</td>
+                    <td>{fmt(r.system_total)}</td>
+                    <td style={{ color: +r.grand_total - +r.system_total >= 0 ? '#10b981' : '#ef4444' }}>{fmt(+r.grand_total - +r.system_total)}</td>
                     <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{fmt(r.grand_total)}</td>
+
                   </tr>
                 ))
               ) : printMode === 'expense' ? (
@@ -244,12 +248,15 @@ export default function AdminDashboard() {
                   <td>{fmt(totalCN)}</td>
                   <td>{fmt(totalSod)}</td>
                   <td>{fmt(totalChq)}</td>
+                  <td>{fmt(totalExp)}</td>
+                  <td>{fmt(totalSys)}</td>
                   <td>{fmt(diff)}</td>
                   <td style={{ textAlign: 'right' }}>{fmt(totalColl)}</td>
                 </tr>
               )}
             </tbody>
           </table>
+
 
           {printMode === 'report' && sortedDenoms.length > 0 && (
             <div style={{ marginTop: '30px' }}>
@@ -340,8 +347,8 @@ export default function AdminDashboard() {
       <style>{`
         .print-template { display: none; }
         @media print {
-          @page { size: portrait; margin: 0; }
-          * { background: white !important; color: black !important; box-shadow: none !important; }
+          @page { size: landscape; margin: 5mm; }
+          * { background: white !important; color: black !important; box-shadow: none !important; -webkit-print-color-adjust: exact; }
           html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
           .no-print { display: none !important; }
           .print-template.print-active { display: block !important; width: 100%; }
@@ -349,11 +356,12 @@ export default function AdminDashboard() {
             width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; border: 0.5pt solid black;
           }
           .photo-exact-ledger th, .photo-exact-ledger td {
-            border: 0.5pt solid black; padding: 5pt 3pt; text-align: left; font-size: 7pt; color: black;
+            border: 0.5pt solid black; padding: 4pt 2pt; text-align: left; font-size: 7.5pt; color: black;
           }
-          .photo-exact-ledger th { font-weight: bold; text-align: center; background: white !important; }
+          .photo-exact-ledger th { font-weight: bold; text-align: center; background: #f0f0f0 !important; }
         }
       `}</style>
+
     </>
   );
 
