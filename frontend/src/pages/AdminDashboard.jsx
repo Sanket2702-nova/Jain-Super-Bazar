@@ -227,6 +227,7 @@ export default function AdminDashboard() {
                   </tr>
                 ))
               ) : printMode === 'expense' ? (
+
                 allExps.map((e, i) => (
                   <tr key={i}><td>{e.date}</td><td>{e.branch}</td><td>{e.desc}</td><td style={{ textAlign: 'right' }}>{fmt(e.amount)}</td></tr>
                 ))
@@ -235,8 +236,21 @@ export default function AdminDashboard() {
                   <tr key={i}><td>₹ {d.denom}</td><td>{d.qty}</td><td style={{ textAlign: 'right' }}>{fmt(d.total)}</td></tr>
                 ))
               )}
+              {printMode === 'report' && reports.length > 0 && (
+                <tr style={{ fontWeight: 'bold', background: '#eee !important' }}>
+                  <td colSpan={3} style={{ textAlign: 'right' }}>GRAND TOTAL:</td>
+                  <td>{fmt(totalCash)}</td>
+                  <td>{fmt(totalUPI)}</td>
+                  <td>{fmt(totalCN)}</td>
+                  <td>{fmt(totalSod)}</td>
+                  <td>{fmt(totalChq)}</td>
+                  <td>{fmt(diff)}</td>
+                  <td style={{ textAlign: 'right' }}>{fmt(totalColl)}</td>
+                </tr>
+              )}
             </tbody>
           </table>
+
           {printMode === 'report' && sortedDenoms.length > 0 && (
             <div style={{ marginTop: '30px' }}>
               <p style={{ margin: '0 0 8px 0', fontSize: '9pt', fontWeight: 'bold' }}>Currency Distribution (Aggregated)</p>
