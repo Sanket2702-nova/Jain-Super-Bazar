@@ -136,7 +136,12 @@ export default function BranchDashboard() {
       if (shift===1) { setShift(2); resetForm(); setIsLocked(false); }
       else setIsLocked(true);
     } catch(err) {
-      setMessage({type:'error', text:'Error: '+(err.response?.data?.error||err.message)});
+      console.error('Submit report error:', err);
+      const errorData = err.response?.data?.error || err.response?.data;
+      const errorMessage = typeof errorData === 'object' 
+        ? (errorData.message || JSON.stringify(errorData)) 
+        : (errorData || err.message || 'Error submitting report');
+      setMessage({type:'error', text: 'Error: ' + errorMessage});
     } finally { setLoading(false); }
   };
 

@@ -96,7 +96,12 @@ export default function AdminDashboard() {
       setShowModal(false);
       fetchUsers();
     } catch (e) {
-      setUError(e.response?.data?.error || 'Error saving user');
+      console.error('Save user error:', e);
+      const errorData = e.response?.data?.error || e.response?.data;
+      const errorMessage = typeof errorData === 'object' 
+        ? (errorData.message || JSON.stringify(errorData)) 
+        : (errorData || e.message || 'Error saving user');
+      setUError(errorMessage);
     } finally {
       setULoading(false);
     }
@@ -369,6 +374,14 @@ export default function AdminDashboard() {
                 <button onClick={() => setShowModal(false)} className="btn-ghost"><X size={20} /></button>
               </div>
               <form onSubmit={saveUser}>
+                {uError && (
+                  <div style={{ 
+                    background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', 
+                    borderRadius: 8, padding: '10px', color: '#f87171', fontSize: '0.85rem', marginBottom: '1.5rem' 
+                  }}>
+                    {uError}
+                  </div>
+                )}
                 <div style={{ marginBottom: '1rem' }}><label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.4rem' }}>Username</label><input type="text" required value={uForm.username} onChange={e => setUForm({ ...uForm, username: e.target.value })} style={inputStyle} /></div>
                 <div style={{ marginBottom: '1rem' }}><label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.4rem' }}>Password</label><input type="password" required={!editUser} value={uForm.password} onChange={e => setUForm({ ...uForm, password: e.target.value })} style={inputStyle} /></div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: '1.5rem' }}>

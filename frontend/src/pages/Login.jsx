@@ -31,7 +31,12 @@ export default function Login() {
         navigate('/branch');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed. Please check your credentials.');
+      console.error('Login error details:', err);
+      const errorData = err.response?.data?.error || err.response?.data;
+      const errorMessage = typeof errorData === 'object' 
+        ? (errorData.message || JSON.stringify(errorData)) 
+        : (errorData || err.message || 'Login failed. Please check your credentials.');
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
