@@ -37,14 +37,21 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        {/* Simple Login Page (Direct to login) */}
+        {/* The Root path NOW renders Login directly if not authenticated */}
+        <Route path="/" element={
+          user
+            ? <Navigate to={user.role === 'Admin' ? '/admin' : '/branch'} />
+            : <Login />
+        } />
+
+        {/* Support /login path as well */}
         <Route path="/login" element={
           user
             ? <Navigate to={user.role === 'Admin' ? '/admin' : '/branch'} />
             : <Login />
         } />
         
-        {/* Support both /login and legacy /login/admin /login/user if any old links exist */}
+        {/* Support legacy /login/admin /login/user */}
         <Route path="/login/:type" element={<Login />} />
 
         {/* Admin routes */}
@@ -57,12 +64,8 @@ export default function App() {
           <BranchRoute><BranchDashboard /></BranchRoute>
         } />
 
-        {/* Redirect root and all other paths to login or respective dashboard */}
-        <Route path="*" element={
-          user
-            ? <Navigate to={user.role === 'Admin' ? '/admin' : '/branch'} />
-            : <Navigate to="/login" />
-        } />
+        {/* Redirect all other paths to root */}
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );
