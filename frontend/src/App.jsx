@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './index.css';
-import Landing from './pages/Landing';
 import Login from './pages/Login';
 import BranchDashboard from './pages/BranchDashboard';
 import AdminDashboard from './pages/AdminDashboard';
@@ -38,17 +37,14 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        {/* Landing Page */}
-        <Route path="/" element={<Landing />} />
-
-        {/* Simple Login Page */}
+        {/* Simple Login Page (Direct to login) */}
         <Route path="/login" element={
           user
             ? <Navigate to={user.role === 'Admin' ? '/admin' : '/branch'} />
             : <Login />
         } />
         
-        {/* Support both /login and /login/admin /login/user as seen in Landing.jsx */}
+        {/* Support both /login and legacy /login/admin /login/user if any old links exist */}
         <Route path="/login/:type" element={<Login />} />
 
         {/* Admin routes */}
@@ -61,11 +57,11 @@ export default function App() {
           <BranchRoute><BranchDashboard /></BranchRoute>
         } />
 
-        {/* Redirect all other paths to root or respective dashboard */}
+        {/* Redirect root and all other paths to login or respective dashboard */}
         <Route path="*" element={
           user
             ? <Navigate to={user.role === 'Admin' ? '/admin' : '/branch'} />
-            : <Navigate to="/" />
+            : <Navigate to="/login" />
         } />
       </Routes>
     </Router>
