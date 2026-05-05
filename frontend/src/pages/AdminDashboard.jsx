@@ -447,8 +447,21 @@ export default function AdminDashboard() {
                     {uError}
                   </div>
                 )}
-                <div style={{ marginBottom: '1rem' }}><label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.4rem' }}>Username</label><input type="text" required value={uForm.username} onChange={e => setUForm({ ...uForm, username: e.target.value })} style={inputStyle} /></div>
-                <div style={{ marginBottom: '1rem' }}><label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.4rem' }}>Password</label><input type="password" required={!editUser} value={uForm.password} onChange={e => setUForm({ ...uForm, password: e.target.value })} style={inputStyle} /></div>
+                <div style={{ marginBottom: '1rem' }}><label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>Username</label><input type="text" name="username" autoComplete="username" required value={uForm.username} onChange={e => setUForm({ ...uForm, username: e.target.value })} style={inputStyle} /></div>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>Password</label>
+                  <input 
+                    type="password" 
+                    name="password"
+                    autoComplete="new-password"
+                    required={!editUser} 
+                    placeholder={editUser ? "Leave blank to keep current password" : "Enter new password"}
+                    value={uForm.password} 
+                    onChange={e => setUForm({ ...uForm, password: e.target.value })} 
+                    style={inputStyle} 
+                  />
+                </div>
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: '1.5rem' }}>
                   <div><label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.4rem' }}>Role</label><select value={uForm.role} className="form-select" style={inputStyle} onChange={e => setUForm({ ...uForm, role: e.target.value })}><option value="Branch">Branch</option><option value="Admin">Admin</option></select></div>
                   <div><label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.4rem' }}>Branch</label><select value={uForm.branch_id} disabled={uForm.role === 'Admin'} className="form-select" style={{ ...inputStyle, opacity: uForm.role === 'Admin' ? 0.5 : 1 }} onChange={e => setUForm({ ...uForm, branch_id: e.target.value })}><option value="">None</option>{allBranches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
