@@ -194,8 +194,10 @@ export default function AdminDashboard() {
 
   const handlePrint = (mode) => {
     setPrintMode(mode);
-    setTimeout(() => window.print(), 200);
+    // Increased timeout to ensure React renders the correct @page orientation before print
+    setTimeout(() => window.print(), 500);
   };
+
 
   const DashboardTab = () => (
     <>
@@ -379,8 +381,9 @@ export default function AdminDashboard() {
       <style>{`
         .print-template { display: none; }
         @media print {
-          @page { size: ${printMode === 'report' ? 'landscape' : 'portrait'}; margin: 5mm; }
+          @page { size: ${printMode === 'report' ? 'landscape' : 'portrait'} !important; margin: 5mm; }
           * { background: white !important; color: black !important; box-shadow: none !important; -webkit-print-color-adjust: exact; }
+
           html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
           .no-print { display: none !important; }
           .print-template.print-active { display: block !important; width: 100%; }
