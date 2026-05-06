@@ -209,6 +209,16 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }
 
+/* ─── Hide Number Spinners ─── */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+input[type=number] {
+  -moz-appearance: textfield !important;
+}
+
 /* ─── Table ─── */
 .premium-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.85rem; }
 .premium-table thead tr { background: rgba(99,102,241,0.08); }
