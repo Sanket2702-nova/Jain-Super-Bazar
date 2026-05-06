@@ -198,6 +198,17 @@ body {
   margin-bottom: 0.45rem;
 }
 
+/* ─── Custom Date Input ─── */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
 /* ─── Table ─── */
 .premium-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.85rem; }
 .premium-table thead tr { background: rgba(99,102,241,0.08); }

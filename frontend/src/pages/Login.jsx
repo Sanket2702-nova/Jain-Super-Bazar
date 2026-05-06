@@ -100,7 +100,7 @@ export default function Login() {
               )}
             </AnimatePresence>
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} autoComplete="off">
               {/* Username */}
               <div style={{ marginBottom:'1.25rem' }}>
                 <label className="form-label">Username</label>
@@ -118,7 +118,7 @@ export default function Login() {
                     placeholder="Enter username"
                     value={username}
                     onChange={e => setUsername(e.target.value)}
-                    autoComplete="username"
+                    autoComplete="one-time-code"
                     autoFocus
                     required
                   />
@@ -143,7 +143,7 @@ export default function Login() {
                     placeholder="••••••••"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    autoComplete="current-password"
+                    autoComplete="new-password"
                     required
                   />
 

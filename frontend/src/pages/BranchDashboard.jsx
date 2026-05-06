@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, Upload, CheckCircle, AlertCircle, Clock, IndianRupee } from 'lucide-react';
+import { Plus, X, Upload, CheckCircle, AlertCircle, Clock, IndianRupee, Calendar } from 'lucide-react';
 
 const API = '/api';
 const headers = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
@@ -15,9 +15,15 @@ const IST_DATE = () => {
   return ist.toISOString().split('T')[0];
 };
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return "";
+  const [y, m, d] = dateStr.split("-");
+  return `${d}-${m}-${y}`;
+};
+
 export default function BranchDashboard() {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const [date] = useState(IST_DATE);
+  const [date, setDate] = useState(IST_DATE());
   const [shift, setShift] = useState(1);
   const [submittedShifts, setSubmittedShifts] = useState([]);
   const [isLocked, setIsLocked] = useState(false);
@@ -77,7 +83,7 @@ export default function BranchDashboard() {
   const downloadTxt = async () => {
     const lines = [
       '     JAIN SUPER BAZAR',`     DAILY CASH REPORT`,`========================================`,
-      `Branch   : ${user.branch_name}`,`Date     : ${date} (Shift ${shift})`,
+      `Branch   : ${user.branch_name}`,`Date     : ${formatDate(date)} (Shift ${shift})`,
       `----------------------------------------`,`CASH DENOMINATIONS`,
       ...denoms.filter(d=>d.quantity>0).map(d=>`  ₹${d.denomination} x ${d.quantity} = ₹${d.total}`),
       `  Total Cash         : ₹ ${totalCash.toFixed(2)}`,`----------------------------------------`,
@@ -100,7 +106,7 @@ export default function BranchDashboard() {
       `Submitted at: ${new Date().toLocaleString()}`,
     ];
     const content = lines.join('\n');
-    const fname = `${(user.branch_name||'branch').toLowerCase().replace(/\s+/g,'_')}_s${shift}_${date}.txt`;
+    const fname = `${(user.branch_name||'branch').toLowerCase().replace(/\s+/g,'_')}_s${shift}_${formatDate(date)}.txt`;
     if ('showSaveFilePicker' in window) {
       try {
         const h = await window.showSaveFilePicker({ suggestedName:fname, types:[{description:'Text',accept:{'text/plain':['.txt']}}] });
@@ -171,10 +177,24 @@ export default function BranchDashboard() {
           🏪 {user.branch_name} — Daily Cash Report
         </h1>
         <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
-          <span style={{ color:'var(--text-secondary)', fontSize:'0.85rem' }}>
-            <Clock size={13} style={{display:'inline',marginRight:4}}/>
-            {new Date(date+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
-          </span>
+          <div 
+            onClick={(e) => { const input = e.currentTarget.querySelector('input'); if(input && input.showPicker) input.showPicker(); }}
+            style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(255,255,255,0.05)', padding:'4px 12px', borderRadius:20, border:'1px solid var(--glass-border)', cursor:'pointer', position:'relative' }}
+          >
+            <Calendar size={14} style={{ color:'var(--primary-light)' }}/>
+            <span style={{ fontSize:'0.85rem', fontWeight:700, color:'white', letterSpacing:'0.02em' }}>
+              {formatDate(date)}
+            </span>
+            <input 
+              type="date" 
+              value={date} 
+              onChange={(e) => { setDate(e.target.value); setShift(1); setMessage(null); }}
+              style={{ position:'absolute', opacity:0, width:0, height:0, pointerEvents:'none' }} 
+            />
+            <span style={{ color:'var(--text-secondary)', fontSize:'0.8rem', opacity:0.8 }}>
+              ({new Date(date+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short'})})
+            </span>
+          </div>
           {/* Shift selector */}
           <div style={{ display:'flex', gap:6 }}>
             {[1,2].map(s => (
@@ -313,8 +333,11 @@ export default function BranchDashboard() {
                       value={c.cheque_no} onChange={e=>{const n=[...cheques];n[i].cheque_no=e.target.value;setCheques(n);}} />
                     <input type="number" step="0.01" className="form-input" placeholder="₹" style={{padding:'0.5rem 0.6rem',fontSize:'0.82rem'}}
                       value={c.amount} onWheel={e=>e.target.blur()} onChange={e=>{const n=[...cheques];n[i].amount=e.target.value;setCheques(n);}} />
-                    <input type="date" className="form-input" style={{padding:'0.5rem 0.4rem',fontSize:'0.78rem'}}
-                      value={c.cheque_date} onChange={e=>{const n=[...cheques];n[i].cheque_date=e.target.value;setCheques(n);}} />
+                    <div style={{ display:'flex', alignItems:'center', gap:4, background:'rgba(255,255,255,0.05)', border:'1px solid var(--glass-border)', borderRadius:6, padding:'0 6px' }}>
+                      <Calendar size={12} style={{ color:'var(--text-muted)' }} />
+                      <input type="date" className="form-input" style={{ background:'none', border:'none', padding:'0.5rem 0', fontSize:'0.78rem', width:'100%' }}
+                        value={c.cheque_date} onChange={e=>{const n=[...cheques];n[i].cheque_date=e.target.value;setCheques(n);}} />
+                    </div>
                     {cheques.length>1 && (
                       <button type="button" onClick={()=>setCheques(p=>p.filter((_,j)=>j!==i))}
                         style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.3)',borderRadius:6,color:'#f87171',cursor:'pointer',padding:'0 8px'}}>

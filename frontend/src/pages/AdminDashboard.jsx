@@ -20,6 +20,12 @@ const getTodayIST = () => {
   return ist.toISOString().split('T')[0];
 };
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return "";
+  const [y, m, d] = dateStr.split("-");
+  return `${d}-${m}-${y}`;
+};
+
 export default function AdminDashboard() {
   const [searchParams] = useSearchParams();
   const tab = searchParams.get('tab') || 'dashboard';
@@ -29,7 +35,8 @@ export default function AdminDashboard() {
   const [allBranches, setAllBranches] = useState([]);
   const [branchNames, setBranchNames] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [dateFilter, setDateFilter] = useState(getTodayIST()); // DEFAULT TO TODAY
+  const [dateFilter, setDateFilter] = useState(getTodayIST()); // START DATE
+  const [endDateFilter, setEndDateFilter] = useState(getTodayIST()); // END DATE
   const [branchFilter, setBranchFilter] = useState('');
   const [printMode, setPrintMode] = useState('report'); 
 
@@ -42,7 +49,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchReports();
-  }, [dateFilter, branchFilter]);
+  }, [dateFilter, endDateFilter, branchFilter]);
 
   useEffect(() => {
     if (tab === 'users') {
@@ -55,7 +62,11 @@ export default function AdminDashboard() {
     setLoading(true);
     try {
       let url = `${API}/reports?`;
-      if (dateFilter) url += `date=${dateFilter}&`;
+      if (dateFilter && endDateFilter) {
+        url += `start_date=${dateFilter}&end_date=${endDateFilter}&`;
+      } else if (dateFilter) {
+        url += `date=${dateFilter}&`;
+      }
       const res = await axios.get(url, { headers: auth() });
       const data = Array.isArray(res.data) ? res.data : [];
       let filteredData = data;
@@ -224,7 +235,7 @@ export default function AdminDashboard() {
               {printMode === 'report' ? (
                 reports.map((r, i) => (
                   <tr key={i}>
-                    <td>{r.report_date}</td><td>{r.branch_name}</td><td style={{ textAlign: 'center' }}>S{r.shift}</td>
+                    <td>{formatDate(r.report_date)}</td><td>{r.branch_name}</td><td style={{ textAlign: 'center' }}>S{r.shift}</td>
                     <td>{fmt(r.total_cash)}</td><td>{fmt(r.card_upi_total)}</td><td>{fmt(r.credit_note_total)}</td><td>{fmt(r.sodexo_total)}</td><td>{fmt(r.cheque_total)}</td>
                     <td style={{ color: '#ef4444' }}>{fmt(r.expense)}</td>
                     <td>{fmt(r.system_total)}</td>
@@ -236,7 +247,7 @@ export default function AdminDashboard() {
               ) : printMode === 'expense' ? (
 
                 allExps.map((e, i) => (
-                  <tr key={i}><td>{e.date}</td><td>{e.branch}</td><td>{e.desc}</td><td style={{ textAlign: 'right' }}>{fmt(e.amount)}</td></tr>
+                  <tr key={i}><td>{formatDate(e.date)}</td><td>{e.branch}</td><td>{e.desc}</td><td style={{ textAlign: 'right' }}>{fmt(e.amount)}</td></tr>
                 ))
               ) : (
                 sortedDenoms.map((d, i) => (
@@ -282,15 +293,47 @@ export default function AdminDashboard() {
       <div className="glass-card no-print" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Calendar size={15} style={{ color: 'var(--text-muted)' }} />
-              <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', borderRadius: 8, padding: '0.45rem', color: 'white' }} />
+            {/* From Date */}
+            <div 
+              onClick={(e) => { const input = e.currentTarget.querySelector('input'); if(input && input.showPicker) input.showPicker(); }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', padding: '4px 12px', borderRadius: 20, border: '1px solid var(--glass-border)', position: 'relative', cursor: 'pointer' }}
+            >
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700 }}>FROM</span>
+              <Calendar size={14} style={{ color: 'var(--primary-light)' }} />
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'white', letterSpacing: '0.02em' }}>
+                {formatDate(dateFilter)}
+              </span>
+              <input 
+                type="date" 
+                value={dateFilter} 
+                onChange={e => setDateFilter(e.target.value)} 
+                style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }} 
+              />
             </div>
+
+            {/* To Date */}
+            <div 
+              onClick={(e) => { const input = e.currentTarget.querySelector('input'); if(input && input.showPicker) input.showPicker(); }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', padding: '4px 12px', borderRadius: 20, border: '1px solid var(--glass-border)', position: 'relative', cursor: 'pointer' }}
+            >
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700 }}>TO</span>
+              <Calendar size={14} style={{ color: 'var(--primary-light)' }} />
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'white', letterSpacing: '0.02em' }}>
+                {formatDate(endDateFilter)}
+              </span>
+              <input 
+                type="date" 
+                value={endDateFilter} 
+                onChange={e => setEndDateFilter(e.target.value)} 
+                style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }} 
+              />
+            </div>
+
             <div style={{ display: 'flex', gap: 6 }}>
               {['', ...branchNames].map(b => (
                 <button key={b || 'all'} onClick={() => setBranchFilter(b)} className={branchFilter === b ? 'btn-primary' : 'btn-ghost'} style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>{b || 'All'}</button>
               ))}
-              <button onClick={() => setDateFilter('')} className="btn-ghost" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>Clear Date</button>
+              <button onClick={() => { setDateFilter(''); setEndDateFilter(''); }} className="btn-ghost" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>Clear Dates</button>
             </div>
           </div>
           <button onClick={() => handlePrint('report')} className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}><Printer size={15} style={{ marginRight: 6 }} /> Print Summary</button>

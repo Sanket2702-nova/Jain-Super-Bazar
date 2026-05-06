@@ -218,7 +218,7 @@ export default function AppShell({ children, user }) {
               {isAdmin ? '👑 Admin' : '🏪 Branch'}
             </span>
             <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-              {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+              {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}
             </span>
           </div>
         </header>

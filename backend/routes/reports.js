@@ -22,6 +22,12 @@ const storage = process.env.VERCEL ? multer.memoryStorage() : multer.diskStorage
 });
 const upload = multer({ storage: storage });
 
+const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    const [y, m, d] = dateStr.split("-");
+    return `${d}-${m}-${y}`;
+};
+
 // Submit Report
 router.post('/', auth, upload.any(), async (req, res) => {
     try {
@@ -195,7 +201,7 @@ router.post('/', auth, upload.any(), async (req, res) => {
                     `     DAILY CASH REPORT (SUPABASE)`,
                     `========================================`,
                     `Branch   : ${branchName}`,
-                    `Date     : ${report_date} (Shift ${shift})`,
+                    `Date     : ${formatDate(report_date)} (Shift ${shift})`,
                     `----------------------------------------`,
                     `CASH DENOMINATIONS`,
                     ...parsedDenoms.filter(d => d.quantity > 0).map(d => `  ₹${d.denomination} x ${d.quantity} = ₹${d.total}`),
@@ -219,7 +225,7 @@ router.post('/', auth, upload.any(), async (req, res) => {
                     `Submitted at: ${new Date().toLocaleString()}`,
                 ];
 
-                const fileName = `${branchName.toLowerCase()}_s${shift}_${report_date}.txt`;
+                const fileName = `${branchName.toLowerCase()}_s${shift}_${formatDate(report_date)}.txt`;
                 if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath, { recursive: true });
                 fs.writeFileSync(path.join(folderPath, fileName), lines.join('\n'), 'utf8');
             } catch (fileErr) {
