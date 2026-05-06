@@ -31,25 +31,27 @@ function BranchRoute({ children }) {
   return <AppShell user={user}>{children}</AppShell>;
 }
 
-export default function App() {
+function HomeRedirect() {
   const user = getUser();
+  if (!user) return <Login />;
+  return <Navigate to={user.role === 'Admin' ? '/admin' : '/branch'} />;
+}
 
+function LoginRedirect() {
+  const user = getUser();
+  if (!user) return <Login />;
+  return <Navigate to={user.role === 'Admin' ? '/admin' : '/branch'} />;
+}
+
+export default function App() {
   return (
     <Router>
       <Routes>
         {/* The Root path NOW renders Login directly if not authenticated */}
-        <Route path="/" element={
-          user
-            ? <Navigate to={user.role === 'Admin' ? '/admin' : '/branch'} />
-            : <Login />
-        } />
+        <Route path="/" element={<HomeRedirect />} />
 
         {/* Support /login path as well */}
-        <Route path="/login" element={
-          user
-            ? <Navigate to={user.role === 'Admin' ? '/admin' : '/branch'} />
-            : <Login />
-        } />
+        <Route path="/login" element={<LoginRedirect />} />
         
         {/* Support legacy /login/admin /login/user */}
         <Route path="/login/:type" element={<Login />} />
