@@ -38,23 +38,28 @@ export default function AdminDashboard() {
   const [dateFilter, setDateFilter] = useState(getTodayIST()); // START DATE
   const [endDateFilter, setEndDateFilter] = useState(getTodayIST()); // END DATE
   const [branchFilter, setBranchFilter] = useState('');
+  const [shiftFilter, setShiftFilter] = useState(''); // NEW SHIFT FILTER
   const [printMode, setPrintMode] = useState('report'); 
 
   const [showModal, setShowModal] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [uForm, setUForm] = useState({ username: '', password: '', role: 'Branch', branch_id: '' });
+  const [settings, setSettings] = useState([]);
   const [uError, setUError] = useState('');
   const [uLoading, setULoading] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
 
   useEffect(() => {
     fetchReports();
-  }, [dateFilter, endDateFilter, branchFilter]);
+  }, [dateFilter, endDateFilter, branchFilter, shiftFilter]);
 
   useEffect(() => {
     if (tab === 'users') {
       fetchUsers();
       fetchAllBranches();
+    }
+    if (tab === 'settings') {
+      fetchSettings();
     }
   }, [tab]);
 
@@ -70,7 +75,8 @@ export default function AdminDashboard() {
       const res = await axios.get(url, { headers: auth() });
       const data = Array.isArray(res.data) ? res.data : [];
       let filteredData = data;
-      if (branchFilter) filteredData = data.filter(r => r.branch_name === branchFilter);
+      if (branchFilter) filteredData = filteredData.filter(r => r.branch_name === branchFilter);
+      if (shiftFilter) filteredData = filteredData.filter(r => r.shift === parseInt(shiftFilter));
       setReports(filteredData);
       const uniq = [...new Set(data.map(r => r.branch_name).filter(Boolean))];
       setBranchNames(uniq);
@@ -94,6 +100,20 @@ export default function AdminDashboard() {
       const r = await axios.get(`${API}/auth/branches`, { headers: auth() });
       setAllBranches(r.data);
     } catch (e) { console.error(e); }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const r = await axios.get(`${API}/reports/settings`, { headers: auth() });
+      setSettings(r.data);
+    } catch (e) { console.error(e); }
+  };
+
+  const updateSetting = async (key, value) => {
+    try {
+      await axios.post(`${API}/reports/settings`, { key, value }, { headers: auth() });
+      fetchSettings();
+    } catch (e) { alert('Error updating setting'); }
   };
 
   const saveUser = async (e) => {
@@ -333,7 +353,13 @@ export default function AdminDashboard() {
               {['', ...branchNames].map(b => (
                 <button key={b || 'all'} onClick={() => setBranchFilter(b)} className={branchFilter === b ? 'btn-primary' : 'btn-ghost'} style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>{b || 'All'}</button>
               ))}
-              <button onClick={() => { setDateFilter(''); setEndDateFilter(''); }} className="btn-ghost" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>Clear Dates</button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 6, paddingLeft: 12, borderLeft: '1px solid var(--glass-border)' }}>
+              {['', '1', '2'].map(s => (
+                <button key={s || 'all-s'} onClick={() => setShiftFilter(s)} className={shiftFilter === s ? 'btn-primary' : 'btn-ghost'} style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>{s ? `S${s}` : 'All Shifts'}</button>
+              ))}
+              <button onClick={() => { setDateFilter(''); setEndDateFilter(''); setBranchFilter(''); setShiftFilter(''); }} className="btn-ghost" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>Clear All</button>
             </div>
           </div>
           <button onClick={() => handlePrint('report')} className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}><Printer size={15} style={{ marginRight: 6 }} /> Print Summary</button>
@@ -447,6 +473,50 @@ export default function AdminDashboard() {
     </div>
   );
 
+  const SettingsTab = () => (
+    <div className="glass-card" style={{ padding: '2rem', maxWidth: 600 }}>
+      <h2 style={{ fontWeight: 800, fontSize: '1.2rem', marginBottom: '1.5rem' }}>⚙️ System Settings</h2>
+      
+      <div style={{ marginBottom: '2rem' }}>
+        <h3 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--primary-light)' }}>📁 Report Backups</h3>
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+          Specify the local folder path on the server where automated text report backups should be saved.
+        </p>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <input 
+            type="text" 
+            placeholder="C:\Reports"
+            value={settings.find(s => s.key === 'backup_path')?.value || ''} 
+            onChange={(e) => {
+              const newSettings = [...settings];
+              const idx = newSettings.findIndex(s => s.key === 'backup_path');
+              if (idx > -1) newSettings[idx].value = e.target.value;
+              else newSettings.push({ key: 'backup_path', value: e.target.value });
+              setSettings(newSettings);
+            }}
+            style={{ ...inputStyle, flex: 1 }} 
+          />
+          <button 
+            className="btn-primary" 
+            onClick={() => updateSetting('backup_path', settings.find(s => s.key === 'backup_path')?.value)}
+          >
+            Save Path
+          </button>
+        </div>
+      </div>
+
+      <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '2rem' }}>
+        <h3 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '1rem', color: '#ef4444' }}>⚠️ Danger Zone</h3>
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+          Note: Database management tools and data reset options will be available here soon. Use with caution.
+        </p>
+        <button className="btn-ghost" style={{ color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }} onClick={() => alert('Feature coming soon')}>
+          System Maintenance
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="animate-fade-in">
       <div style={{ marginBottom: '1.5rem' }} className="no-print">
@@ -455,6 +525,7 @@ export default function AdminDashboard() {
       <AnimatePresence mode="wait">
         {tab === 'dashboard' && <DashboardTab key="dashboard" />}
         {tab === 'users' && <UsersTab key="users" />}
+        {tab === 'settings' && <SettingsTab key="settings" />}
       </AnimatePresence>
       <AnimatePresence>
         {selectedReport && (
