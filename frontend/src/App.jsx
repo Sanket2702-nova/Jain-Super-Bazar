@@ -5,6 +5,22 @@ import Login from './pages/Login';
 import BranchDashboard from './pages/BranchDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AppShell from './components/AppShell';
+import axios from 'axios';
+
+// Global Axios Interceptor to handle session expiration / invalid tokens
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const isInvalidToken = error.response?.data?.error === 'Invalid token' || 
+                          error.response?.data?.error === 'Access denied, no token provided';
+    
+    if (error.response?.status === 401 || (error.response?.status === 400 && isInvalidToken)) {
+      localStorage.clear();
+      window.location.href = '/login'; // Force reload to clear all states
+    }
+    return Promise.reject(error);
+  }
+);
 
 function getUser() {
   try {
