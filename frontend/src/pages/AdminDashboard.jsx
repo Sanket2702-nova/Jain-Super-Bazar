@@ -349,15 +349,17 @@ export default function AdminDashboard() {
               />
             </div>
 
-            <div style={{ display: 'flex', gap: 6 }}>
-              {['', ...branchNames].map(b => (
-                <button key={b || 'all'} onClick={() => setBranchFilter(b)} className={branchFilter === b ? 'btn-primary' : 'btn-ghost'} style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>{b || 'All'}</button>
+            {/* Shift Filter */}
+            <div style={{ display: 'flex', gap: 6, paddingRight: 12, borderRight: '1px solid var(--glass-border)' }}>
+              {['', '1', '2'].map(s => (
+                <button key={s || 'all-s'} onClick={() => setShiftFilter(s)} className={shiftFilter === s ? 'btn-primary' : 'btn-ghost'} style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>{s ? `S${s}` : 'All Shifts'}</button>
               ))}
             </div>
 
-            <div style={{ display: 'flex', gap: 6, paddingLeft: 12, borderLeft: '1px solid var(--glass-border)' }}>
-              {['', '1', '2'].map(s => (
-                <button key={s || 'all-s'} onClick={() => setShiftFilter(s)} className={shiftFilter === s ? 'btn-primary' : 'btn-ghost'} style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>{s ? `S${s}` : 'All Shifts'}</button>
+            {/* Branch Filter */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {['', ...branchNames].map(b => (
+                <button key={b || 'all'} onClick={() => setBranchFilter(b)} className={branchFilter === b ? 'btn-primary' : 'btn-ghost'} style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>{b || 'All'}</button>
               ))}
               <button onClick={() => { setDateFilter(''); setEndDateFilter(''); setBranchFilter(''); setShiftFilter(''); }} className="btn-ghost" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>Clear All</button>
             </div>
