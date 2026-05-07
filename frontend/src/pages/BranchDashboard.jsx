@@ -30,6 +30,7 @@ export default function BranchDashboard() {
   const [loading, setLoading] = useState(false);
    const [message, setMessage] = useState(null); // {type:'success'|'error', text}
    const [modal, setModal] = useState(null); // {type:'error'|'success', title, text}
+   const [showConfirm, setShowConfirm] = useState(false); // NEW CONFIRMATION STATE
 
 
   const [denoms, setDenoms] = useState(DENOMS.map(d => ({ denomination:d, quantity:0, total:0 })));
@@ -118,23 +119,25 @@ export default function BranchDashboard() {
     a.download = fname; a.click();
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = (e) => {
+    if (e) e.preventDefault();
     if (!systemTotal) { setMessage({type:'error',text:'System Total is required!'}); return; }
     
-    // Validate Cheques: If either amount or cheque_no is entered, both must be present
+    // Validate Cheques
     const incompleteCheque = cheques.find(c => (c.amount && !c.cheque_no) || (!c.amount && c.cheque_no));
     if (incompleteCheque) {
       setModal({
         type: 'error',
         title: 'Incomplete Cheque Data',
-        text: '⚠️ Both Cheque Number and Amount are required for any cheque entry you add. Please fill both or remove the entry.'
+        text: '⚠️ Both Cheque Number and Amount are required for any cheque entry you add.'
       });
       return;
     }
+    setShowConfirm(true);
+  };
 
-
-
+  const processSubmit = async () => {
+    setShowConfirm(false);
     setLoading(true); setMessage(null);
     const fd = new FormData();
     fd.append('branch_id', user.branch_id);
@@ -459,6 +462,40 @@ export default function BranchDashboard() {
               >
                 Understood
               </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Confirmation Modal */}
+      <AnimatePresence>
+        {showConfirm && (
+          <div className="modal-overlay" onClick={() => setShowConfirm(false)}>
+            <motion.div 
+              initial={{ scale: 0.8, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0, y: 20 }}
+              className="modal-box"
+              style={{ maxWidth: 450, textAlign: 'center', borderTop: '5px solid var(--primary)' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>❓</div>
+              <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>
+                Confirm Submission?
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '2rem', fontSize: '1.05rem' }}>
+                You are about to submit the <strong>Shift {shift}</strong> report for <strong>{formatDate(date)}</strong>.<br/>
+                Total Amount: <strong>₹{grandTotal.toLocaleString('en-IN')}</strong><br/><br/>
+                Are you sure all details are correct?
+              </p>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button className="btn-ghost" style={{ flex: 1, padding: '0.8rem' }} onClick={() => setShowConfirm(false)}>
+                  No, Review
+                </button>
+                <button className="btn-primary" style={{ flex: 1, padding: '0.8rem' }} onClick={processSubmit}>
+                  Yes, Submit
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
