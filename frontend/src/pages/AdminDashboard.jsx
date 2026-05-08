@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   RefreshCw, Printer, Plus, Edit2, Trash2,
   Shield, ShieldOff, X, Filter, Calendar, Eye, IndianRupee, FileText, Ticket, Notebook,
-  FileSpreadsheet
+  FileSpreadsheet, ChevronDown
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -50,6 +50,7 @@ export default function AdminDashboard() {
   const [uError, setUError] = useState('');
   const [uLoading, setULoading] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   useEffect(() => {
     fetchReports();
@@ -232,7 +233,7 @@ export default function AdminDashboard() {
     setTimeout(() => window.print(), 500);
   };
 
-  const exportToExcel = (mode) => {
+  const exportToExcel = async (mode) => {
     let data = [];
     let fileName = `Report_${getTodayIST()}.xlsx`;
 
@@ -252,44 +253,36 @@ export default function AdminDashboard() {
         'Difference': +r.grand_total - +r.system_total,
         'Grand Total': +r.grand_total
       }));
-      // Add a total row
-      data.push({
-        'Date': 'GRAND TOTAL',
-        'Branch': '',
-        'Shift': '',
-        'Cash': totalCash,
-        'UPI/Card': totalUPI,
-        'Credit Note': totalCN,
-        'Sodexo': totalSod,
-        'Cheques': totalChq,
-        'Expenses': totalExp,
-        'System Total': totalSys,
-        'Difference': diff,
-        'Grand Total': totalColl
-      });
+      data.push({ 'Date': 'GRAND TOTAL', 'Cash': totalCash, 'UPI/Card': totalUPI, 'Credit Note': totalCN, 'Sodexo': totalSod, 'Cheques': totalChq, 'Expenses': totalExp, 'System Total': totalSys, 'Difference': diff, 'Grand Total': totalColl });
     } else if (mode === 'expense') {
       fileName = `Expenses_${getTodayIST()}.xlsx`;
-      data = allExps.map(e => ({
-        'Date': formatDate(e.date),
-        'Branch': e.branch,
-        'Shift': `S${e.shift}`,
-        'Description': e.desc,
-        'Amount': +e.amount
-      }));
-    } else if (mode === 'inventory') {
-      fileName = `Currency_Inventory_${getTodayIST()}.xlsx`;
-      data = sortedDenoms.map(d => ({
-        'Denomination': `₹ ${d.denom}`,
-        'Quantity': d.qty,
-        'Total': d.total
-      }));
-      data.push({ 'Denomination': 'TOTAL CASH', 'Quantity': '', 'Total': totalCash });
+      data = allExps.map(e => ({ 'Date': formatDate(e.date), 'Branch': e.branch, 'Shift': `S${e.shift}`, 'Description': e.desc, 'Amount': +e.amount }));
     }
 
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-    XLSX.writeFile(wb, fileName);
+    
+    // Modern "Save As" logic using File System Access API if available
+    if ('showSaveFilePicker' in window) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: fileName,
+          types: [{
+            description: 'Excel Workbook',
+            accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] },
+          }],
+        });
+        const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+        const writable = await handle.createWritable();
+        await writable.write(buf);
+        await writable.close();
+      } catch (e) {
+        if (e.name !== 'AbortError') XLSX.writeFile(wb, fileName);
+      }
+    } else {
+      XLSX.writeFile(wb, fileName);
+    }
   };
 
 
@@ -426,13 +419,53 @@ export default function AdminDashboard() {
               <button onClick={() => { setDateFilter(''); setEndDateFilter(''); setBranchFilter(''); setShiftFilter(''); }} className="btn-ghost" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>Clear All</button>
             </div>
            </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={() => exportToExcel('report')} className="btn-ghost" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', borderColor: '#10b981', color: '#10b981' }}>
-              <FileSpreadsheet size={15} style={{ marginRight: 6 }} /> Save as Excel
+          <div style={{ position: 'relative' }}>
+            <button 
+              onClick={() => setShowExportMenu(!showExportMenu)} 
+              className="btn-primary" 
+              style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 10 }}
+            >
+              <FileText size={16} /> Print & Save <ChevronDown size={14} style={{ transform: showExportMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
             </button>
-            <button onClick={() => handlePrint('report')} className="btn-primary" style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem' }}>
-              <Printer size={15} style={{ marginRight: 6 }} /> Print Summary
-            </button>
+            
+            <AnimatePresence>
+              {showExportMenu && (
+                <>
+                  <div style={{ position: 'fixed', inset: 0, zIndex: 100 }} onClick={() => setShowExportMenu(false)} />
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    style={{ 
+                      position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 101,
+                      background: 'var(--bg-2)', border: '1px solid var(--glass-border)',
+                      borderRadius: 14, padding: 6, width: 220,
+                      boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
+                      backdropFilter: 'blur(20px)'
+                    }}
+                  >
+                    <button 
+                      onClick={() => { handlePrint('report'); setShowExportMenu(false); }}
+                      className="nav-tab" 
+                      style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: '0.75rem 1rem', border: 'none', borderRadius: 8 }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <Printer size={16} color="var(--primary-light)" /> Print Report
+                    </button>
+                    <button 
+                      onClick={() => { exportToExcel('report'); setShowExportMenu(false); }}
+                      className="nav-tab" 
+                      style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: '0.75rem 1rem', border: 'none', borderRadius: 8 }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <FileSpreadsheet size={16} color="#10b981" /> Save as Excel (Ask Location)
+                    </button>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
