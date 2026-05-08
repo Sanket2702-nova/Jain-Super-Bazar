@@ -11,16 +11,16 @@
   --success: #10b981;
   --info: #06b6d4;
 
-  --bg-base: #080b18;
-  --bg-1: #0d1225;
-  --bg-2: #111827;
-  --bg-3: #1a2035;
-  --bg-card: rgba(255,255,255,0.04);
-  --bg-card-hover: rgba(255,255,255,0.08);
+  --bg-base: #05070d;
+  --bg-1: #090c19;
+  --bg-2: #0e121e;
+  --bg-3: #151a2b;
+  --bg-card: rgba(255,255,255,0.03);
+  --bg-card-hover: rgba(255,255,255,0.07);
 
-  --glass-bg: rgba(255,255,255,0.05);
-  --glass-border: rgba(255,255,255,0.1);
-  --glass-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  --glass-bg: rgba(255,255,255,0.035);
+  --glass-border: rgba(255,255,255,0.08);
+  --glass-shadow: 0 8px 32px rgba(0,0,0,0.5);
 
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
