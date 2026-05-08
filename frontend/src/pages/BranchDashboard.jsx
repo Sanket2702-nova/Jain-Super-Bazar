@@ -237,9 +237,13 @@ export default function BranchDashboard() {
           style={{ textAlign:'center', padding:'4rem 2rem' }}>
           <div style={{ fontSize:'4rem', marginBottom:'1rem' }}>✅</div>
           <h2 style={{ fontFamily:'var(--font-heading)', fontWeight:800, color:'#34d399', fontSize:'1.5rem', marginBottom:'0.5rem' }}>
-            All Done for Today!
+            {submittedShifts.length === 2 ? 'All Done for Today!' : `Shift ${shift} Submitted!`}
           </h2>
-          <p style={{ color:'var(--text-secondary)' }}>Both Shift 1 and Shift 2 have been submitted for {date}.</p>
+          <p style={{ color:'var(--text-secondary)' }}>
+            {submittedShifts.length === 2 
+              ? `Both Shift 1 and Shift 2 have been submitted for ${formatDate(date)}.` 
+              : `Shift ${shift} report for ${formatDate(date)} is already on file. You can switch to the next shift above.`}
+          </p>
         </motion.div>
       ) : (
         <form onSubmit={handleSubmit}>
