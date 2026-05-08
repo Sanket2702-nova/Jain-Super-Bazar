@@ -423,8 +423,8 @@ export default function AdminDashboard() {
               ))}
               <button onClick={() => { setDateFilter(''); setEndDateFilter(''); setBranchFilter(''); setShiftFilter(''); }} className="btn-ghost" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>Clear All</button>
             </div>
-           </div>
-           </div>
+            </div>
+          </div>
           <button 
             onClick={() => handlePrint('report', true)} 
             className="btn-primary animate-pulse-glow" 
@@ -433,9 +433,6 @@ export default function AdminDashboard() {
             <Printer size={18} /> Print & Save Summary
           </button>
         </div>
-      </div>
-        </div>
-      </div>
 
       <div className="no-print" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12, marginBottom: '1.5rem' }}>
         {statCards.map(s => (
