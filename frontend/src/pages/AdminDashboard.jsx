@@ -4,8 +4,10 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   RefreshCw, Printer, Plus, Edit2, Trash2,
-  Shield, ShieldOff, X, Filter, Calendar, Eye, IndianRupee, FileText, Ticket, Notebook
+  Shield, ShieldOff, X, Filter, Calendar, Eye, IndianRupee, FileText, Ticket, Notebook,
+  FileSpreadsheet
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 const API = '/api';
 const auth = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
@@ -230,6 +232,66 @@ export default function AdminDashboard() {
     setTimeout(() => window.print(), 500);
   };
 
+  const exportToExcel = (mode) => {
+    let data = [];
+    let fileName = `Report_${getTodayIST()}.xlsx`;
+
+    if (mode === 'report') {
+      fileName = `Daily_Summary_${getTodayIST()}.xlsx`;
+      data = reports.map(r => ({
+        'Date': formatDate(r.report_date),
+        'Branch': r.branch_name,
+        'Shift': `S${r.shift}`,
+        'Cash': +r.total_cash,
+        'UPI/Card': +r.card_upi_total,
+        'Credit Note': +r.credit_note_total,
+        'Sodexo': +r.sodexo_total,
+        'Cheques': +r.cheque_total,
+        'Expenses': +r.expense,
+        'System Total': +r.system_total,
+        'Difference': +r.grand_total - +r.system_total,
+        'Grand Total': +r.grand_total
+      }));
+      // Add a total row
+      data.push({
+        'Date': 'GRAND TOTAL',
+        'Branch': '',
+        'Shift': '',
+        'Cash': totalCash,
+        'UPI/Card': totalUPI,
+        'Credit Note': totalCN,
+        'Sodexo': totalSod,
+        'Cheques': totalChq,
+        'Expenses': totalExp,
+        'System Total': totalSys,
+        'Difference': diff,
+        'Grand Total': totalColl
+      });
+    } else if (mode === 'expense') {
+      fileName = `Expenses_${getTodayIST()}.xlsx`;
+      data = allExps.map(e => ({
+        'Date': formatDate(e.date),
+        'Branch': e.branch,
+        'Shift': `S${e.shift}`,
+        'Description': e.desc,
+        'Amount': +e.amount
+      }));
+    } else if (mode === 'inventory') {
+      fileName = `Currency_Inventory_${getTodayIST()}.xlsx`;
+      data = sortedDenoms.map(d => ({
+        'Denomination': `₹ ${d.denom}`,
+        'Quantity': d.qty,
+        'Total': d.total
+      }));
+      data.push({ 'Denomination': 'TOTAL CASH', 'Quantity': '', 'Total': totalCash });
+    }
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+    XLSX.writeFile(wb, fileName);
+  };
+
 
   const DashboardTab = () => (
     <>
@@ -363,8 +425,15 @@ export default function AdminDashboard() {
               ))}
               <button onClick={() => { setDateFilter(''); setEndDateFilter(''); setBranchFilter(''); setShiftFilter(''); }} className="btn-ghost" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>Clear All</button>
             </div>
+           </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => exportToExcel('report')} className="btn-ghost" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', borderColor: '#10b981', color: '#10b981' }}>
+              <FileSpreadsheet size={15} style={{ marginRight: 6 }} /> Excel
+            </button>
+            <button onClick={() => handlePrint('report')} className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+              <Printer size={15} style={{ marginRight: 6 }} /> Print Summary
+            </button>
           </div>
-          <button onClick={() => handlePrint('report')} className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}><Printer size={15} style={{ marginRight: 6 }} /> Print Summary</button>
         </div>
       </div>
 
@@ -381,7 +450,10 @@ export default function AdminDashboard() {
         <div className="glass-card" style={{ padding: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
              <h2 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#10b981', margin: 0 }}>💵 Cash Inventory</h2>
-             <button onClick={() => handlePrint('inventory')} className="btn-ghost" style={{ padding: '4px 8px' }}><Printer size={12} /></button>
+             <div style={{ display: 'flex', gap: 6 }}>
+               <button onClick={() => exportToExcel('inventory')} className="btn-ghost" style={{ padding: '4px 8px', color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }}><FileSpreadsheet size={12} /></button>
+               <button onClick={() => handlePrint('inventory')} className="btn-ghost" style={{ padding: '4px 8px' }}><Printer size={12} /></button>
+             </div>
           </div>
           {sortedDenoms.map(d => (<div key={d.denom} className="denom-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}><span>₹{d.denom} × {d.qty}</span><span>₹{fmt(d.total)}</span></div>))}
           <div style={{ borderTop: '1px solid var(--glass-border)', marginTop: 10, paddingTop: 10, fontWeight: 800 }}>Total: ₹{fmt(totalCash)}</div>
@@ -389,7 +461,10 @@ export default function AdminDashboard() {
         <div className="glass-card" style={{ padding: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h2 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#ef4444', margin: 0 }}>📑 Expenses</h2>
-            <button onClick={() => handlePrint('expense')} className="btn-ghost" style={{ padding: '4px 8px' }}><Printer size={12} /></button>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => exportToExcel('expense')} className="btn-ghost" style={{ padding: '4px 8px', color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }}><FileSpreadsheet size={12} /></button>
+              <button onClick={() => handlePrint('expense')} className="btn-ghost" style={{ padding: '4px 8px' }}><Printer size={12} /></button>
+            </div>
           </div>
           <div style={{ maxHeight: 200, overflowY: 'auto' }}>
             {allExps.length > 0 ? allExps.map((e, i) => (
