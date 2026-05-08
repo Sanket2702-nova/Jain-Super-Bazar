@@ -424,63 +424,16 @@ export default function AdminDashboard() {
               <button onClick={() => { setDateFilter(''); setEndDateFilter(''); setBranchFilter(''); setShiftFilter(''); }} className="btn-ghost" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>Clear All</button>
             </div>
            </div>
-          <div style={{ position: 'relative' }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <button 
-                onClick={() => handlePrint('report', true)} 
-                className="btn-primary" 
-                style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 10, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
-              >
-                <FileText size={16} /> Print & Save
-              </button>
-              <button 
-                onClick={() => setShowExportMenu(!showExportMenu)} 
-                className="btn-primary" 
-                style={{ padding: '0.5rem 0.5rem', fontSize: '0.85rem', borderLeft: '1px solid rgba(255,255,255,0.2)', borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
-              >
-                <ChevronDown size={14} style={{ transform: showExportMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-              </button>
-            </div>
-            
-            <AnimatePresence>
-              {showExportMenu && (
-                <>
-                  <div style={{ position: 'fixed', inset: 0, zIndex: 100 }} onClick={() => setShowExportMenu(false)} />
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    style={{ 
-                      position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 101,
-                      background: 'var(--bg-2)', border: '1px solid var(--glass-border)',
-                      borderRadius: 14, padding: 6, width: 220,
-                      boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
-                      backdropFilter: 'blur(20px)'
-                    }}
-                  >
-                    <button 
-                      onClick={() => { handlePrint('report', true); setShowExportMenu(false); }}
-                      className="nav-tab" 
-                      style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: '0.75rem 1rem', border: 'none', borderRadius: 8 }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <Printer size={16} color="var(--primary-light)" /> Print & Auto-Save Excel
-                    </button>
-                    <button 
-                      onClick={() => { exportToExcel('report'); setShowExportMenu(false); }}
-                      className="nav-tab" 
-                      style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: '0.75rem 1rem', border: 'none', borderRadius: 8 }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <FileSpreadsheet size={16} color="#10b981" /> Save as Excel Only
-                    </button>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
-          </div>
+           </div>
+          <button 
+            onClick={() => handlePrint('report', true)} 
+            className="btn-primary animate-pulse-glow" 
+            style={{ padding: '0.65rem 1.5rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 8px 25px rgba(99,102,241,0.5)' }}
+          >
+            <Printer size={18} /> Print & Save Summary
+          </button>
+        </div>
+      </div>
         </div>
       </div>
 
