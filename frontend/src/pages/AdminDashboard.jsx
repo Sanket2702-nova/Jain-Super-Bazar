@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   RefreshCw, Printer, Plus, Edit2, Trash2,
   Shield, ShieldOff, X, Filter, Calendar, Eye, IndianRupee, FileText, Ticket, Notebook,
-  FileSpreadsheet, ChevronDown
+  FileSpreadsheet
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -50,7 +50,6 @@ export default function AdminDashboard() {
   const [uError, setUError] = useState('');
   const [uLoading, setULoading] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
-  const [showExportMenu, setShowExportMenu] = useState(false);
 
   useEffect(() => {
     fetchReports();
@@ -427,53 +426,13 @@ export default function AdminDashboard() {
               <button onClick={() => { setDateFilter(''); setEndDateFilter(''); setBranchFilter(''); setShiftFilter(''); }} className="btn-ghost" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>Clear All</button>
             </div>
            </div>
-          <div style={{ position: 'relative' }}>
-            <button 
-              onClick={() => setShowExportMenu(!showExportMenu)} 
-              className="btn-primary" 
-              style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 8 }}
-            >
-              <FileText size={16} /> Actions <ChevronDown size={14} style={{ transform: showExportMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => exportToExcel('report')} className="btn-ghost" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', borderColor: '#10b981', color: '#10b981' }}>
+              <FileSpreadsheet size={15} style={{ marginRight: 6 }} /> Excel
             </button>
-            
-            <AnimatePresence>
-              {showExportMenu && (
-                <>
-                  <div style={{ position: 'fixed', inset: 0, zIndex: 100 }} onClick={() => setShowExportMenu(false)} />
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    style={{ 
-                      position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 101,
-                      background: 'var(--bg-2)', border: '1px solid var(--glass-border)',
-                      borderRadius: 12, padding: 6, width: 200,
-                      boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-                      backdropFilter: 'blur(10px)'
-                    }}
-                  >
-                    <button 
-                      onClick={() => { handlePrint('report'); setShowExportMenu(false); }}
-                      className="nav-tab" 
-                      style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, padding: '0.6rem 1rem' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <Printer size={16} color="var(--primary-light)" /> Print Report
-                    </button>
-                    <button 
-                      onClick={() => { exportToExcel('report'); setShowExportMenu(false); }}
-                      className="nav-tab" 
-                      style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, padding: '0.6rem 1rem' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <FileSpreadsheet size={16} color="#10b981" /> Save as Excel (.xlsx)
-                    </button>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
+            <button onClick={() => handlePrint('report')} className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+              <Printer size={15} style={{ marginRight: 6 }} /> Print Summary
+            </button>
           </div>
         </div>
       </div>
