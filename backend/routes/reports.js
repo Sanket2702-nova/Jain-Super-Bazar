@@ -144,6 +144,9 @@ router.post('/', auth, upload.any(), async (req, res) => {
         };
 
         if (existingReport) {
+            if (req.user.role === 'Branch') {
+                return res.status(403).json({ error: 'Report already submitted for this shift. You cannot refill it.' });
+            }
             reportId = existingReport.id;
             const { error: updateError } = await supabase
                 .from('cashreports')
