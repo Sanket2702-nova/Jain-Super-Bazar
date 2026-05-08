@@ -425,13 +425,22 @@ export default function AdminDashboard() {
             </div>
            </div>
           <div style={{ position: 'relative' }}>
-            <button 
-              onClick={() => setShowExportMenu(!showExportMenu)} 
-              className="btn-primary" 
-              style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 10 }}
-            >
-              <FileText size={16} /> Print & Save <ChevronDown size={14} style={{ transform: showExportMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <button 
+                onClick={() => handlePrint('report', true)} 
+                className="btn-primary" 
+                style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 10, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+              >
+                <FileText size={16} /> Print & Save
+              </button>
+              <button 
+                onClick={() => setShowExportMenu(!showExportMenu)} 
+                className="btn-primary" 
+                style={{ padding: '0.5rem 0.5rem', fontSize: '0.85rem', borderLeft: '1px solid rgba(255,255,255,0.2)', borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+              >
+                <ChevronDown size={14} style={{ transform: showExportMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+              </button>
+            </div>
             
             <AnimatePresence>
               {showExportMenu && (
