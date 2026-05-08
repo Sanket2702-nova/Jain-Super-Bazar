@@ -227,10 +227,15 @@ export default function AdminDashboard() {
     { label: 'Difference',      value: diff,      color: diff >= 0 ? '#10b981' : '#ef4444', icon: diff >= 0 ? '📈' : '📉', signed: true },
   ];
 
-  const handlePrint = (mode) => {
+  const handlePrint = (mode, autoSave = false) => {
     setPrintMode(mode);
-    // Increased timeout to ensure React renders the correct @page orientation before print
-    setTimeout(() => window.print(), 500);
+    setTimeout(() => {
+      window.print();
+      if (autoSave) {
+        // Trigger excel export after print dialog is closed
+        setTimeout(() => exportToExcel(mode), 1000);
+      }
+    }, 500);
   };
 
   const exportToExcel = async (mode) => {
@@ -445,13 +450,13 @@ export default function AdminDashboard() {
                     }}
                   >
                     <button 
-                      onClick={() => { handlePrint('report'); setShowExportMenu(false); }}
+                      onClick={() => { handlePrint('report', true); setShowExportMenu(false); }}
                       className="nav-tab" 
                       style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: '0.75rem 1rem', border: 'none', borderRadius: 8 }}
                       onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
-                      <Printer size={16} color="var(--primary-light)" /> Print Report
+                      <Printer size={16} color="var(--primary-light)" /> Print & Auto-Save Excel
                     </button>
                     <button 
                       onClick={() => { exportToExcel('report'); setShowExportMenu(false); }}
@@ -460,7 +465,7 @@ export default function AdminDashboard() {
                       onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
-                      <FileSpreadsheet size={16} color="#10b981" /> Save as Excel (Ask Location)
+                      <FileSpreadsheet size={16} color="#10b981" /> Save as Excel Only
                     </button>
                   </motion.div>
                 </>
