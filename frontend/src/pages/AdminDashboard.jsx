@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   RefreshCw, Printer, Plus, Edit2, Trash2,
   Shield, ShieldOff, X, Filter, Calendar, Eye, IndianRupee, FileText, Ticket, Notebook,
-  FileSpreadsheet, FileDown, ChevronDown
+  FileSpreadsheet, ChevronDown
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -198,19 +198,6 @@ export default function AdminDashboard() {
     });
   });
   const sortedDenoms = Object.entries(aggDenoms).sort((a,b) => b[0] - a[0]).map(([denom, val]) => ({ denom, ...val }));
-  
-  const saleSum = (() => {
-    let paldi = 0, nehru = 0, bopal = 0, scity = 0;
-    reports.forEach(r => {
-      const b = r.branch_name?.toLowerCase().replace(/\s+/g, '') || '';
-      if (['slave1', 'slave2', 'slave3'].includes(b)) paldi += +r.system_total;
-      if (b === 'slave4') paldi += +r.bill_amount;
-      if (b === 'jsb03') nehru += +r.system_total;
-      if (b === 'jsb05') bopal += +r.system_total;
-      if (b === 'jsb07') scity += +r.system_total;
-    });
-    return { paldi, nehru, bopal, scity, total: paldi + nehru + bopal + scity };
-  })();
 
   const allExps = [];
   const allCheques = [];
@@ -263,8 +250,8 @@ export default function AdminDashboard() {
         'Branch': r.branch_name,
         'Shift': `S${r.shift}`,
         'Cash': +r.total_cash,
-        'UPI': r.upi_total > 0 ? +r.upi_total : (r.card_total > 0 ? 0 : +r.card_upi_total),
         'Card': r.card_total > 0 ? +r.card_total : (r.upi_total > 0 ? 0 : 0),
+        'UPI': r.upi_total > 0 ? +r.upi_total : (r.card_total > 0 ? 0 : +r.card_upi_total),
         'Credit Note': +r.credit_note_total,
         'Sodexo': +r.sodexo_total,
         'Cheques': +r.cheque_total,
@@ -273,7 +260,7 @@ export default function AdminDashboard() {
         'Difference': +r.grand_total - +r.system_total,
         'Grand Total': +r.grand_total
       }));
-      data.push({ 'Date': 'GRAND TOTAL', 'Cash': totalCash, 'UPI': totalUPI, 'Card': totalCard, 'Credit Note': totalCN, 'Sodexo': totalSod, 'Cheques': totalChq, 'Expenses': totalExp, 'System Total': totalSys, 'Difference': diff, 'Grand Total': totalColl });
+      data.push({ 'Date': 'GRAND TOTAL', 'Cash': totalCash, 'Card': totalCard, 'UPI': totalUPI, 'Credit Note': totalCN, 'Sodexo': totalSod, 'Cheques': totalChq, 'Expenses': totalExp, 'System Total': totalSys, 'Difference': diff, 'Grand Total': totalColl });
     } else if (mode === 'expense') {
       fileName = `Expenses_${getTodayIST()}.xlsx`;
       data = allExps.map(e => ({ 'Date': formatDate(e.date), 'Branch': e.branch, 'Shift': `S${e.shift}`, 'Description': e.desc, 'Amount': +e.amount }));
@@ -317,7 +304,7 @@ export default function AdminDashboard() {
             <thead>
               {printMode === 'report' ? (
                 <tr>
-                  <th>DATE</th><th>BRANCH</th><th>SHIFT</th><th>CASH</th><th>UPI</th><th>CARD</th><th>CN</th><th>SODEXO</th><th>CHQ</th><th>EXPENSE</th><th>SYS TOTAL</th><th>DIFF</th><th style={{ textAlign: 'right' }}>TOTAL</th>
+                  <th>DATE</th><th>BRANCH</th><th>SHIFT</th><th>CASH</th><th>CARD</th><th>UPI</th><th>CN</th><th>SODEXO</th><th>CHQ</th><th>EXPENSE</th><th>SYS TOTAL</th><th>DIFF</th><th style={{ textAlign: 'right' }}>TOTAL</th>
                 </tr>
 
               ) : printMode === 'expense' ? (
@@ -332,8 +319,8 @@ export default function AdminDashboard() {
                   <tr key={i}>
                     <td>{formatDate(r.report_date)}</td><td>{r.branch_name}</td><td style={{ textAlign: 'center' }}>S{r.shift}</td>
                     <td>{fmt(r.total_cash)}</td>
-                    <td style={{ color: '#818cf8', fontWeight: 600 }}>{r.upi_total > 0 ? fmt(r.upi_total) : (r.card_total > 0 ? '0.00' : fmt(r.card_upi_total))}</td>
                     <td style={{ color: '#6366f1', fontWeight: 600 }}>{r.card_total > 0 ? fmt(r.card_total) : (r.upi_total > 0 ? '0.00' : '-')}</td>
+                    <td style={{ color: '#818cf8', fontWeight: 600 }}>{r.upi_total > 0 ? fmt(r.upi_total) : (r.card_total > 0 ? '0.00' : fmt(r.card_upi_total))}</td>
                     <td>{fmt(r.credit_note_total)}</td><td>{fmt(r.sodexo_total)}</td><td>{fmt(r.cheque_total)}</td>
                     <td style={{ color: '#ef4444' }}>{fmt(r.expense)}</td>
                     <td>{fmt(r.system_total)}</td>
@@ -356,8 +343,8 @@ export default function AdminDashboard() {
                 <tr style={{ fontWeight: 'bold', background: '#eee !important' }}>
                   <td colSpan={3} style={{ textAlign: 'right' }}>GRAND TOTAL:</td>
                   <td>{fmt(totalCash)}</td>
-                  <td>{fmt(totalUPI)}</td>
                   <td>{fmt(totalCard)}</td>
+                  <td>{fmt(totalUPI)}</td>
                   <td>{fmt(totalCN)}</td>
                   <td>{fmt(totalSod)}</td>
                   <td>{fmt(totalChq)}</td>
@@ -372,36 +359,16 @@ export default function AdminDashboard() {
 
 
           {printMode === 'report' && sortedDenoms.length > 0 && (
-            <div style={{ marginTop: '30px', display: 'flex', gap: '5%', alignItems: 'flex-start' }}>
+            <div style={{ marginTop: '30px', width: '40%' }}>
               {/* Currency Dist */}
-              <div style={{ width: '40%' }}>
-                <p style={{ margin: '0 0 8px 0', fontSize: '9pt', fontWeight: 'bold' }}>Currency Distribution (Aggregated)</p>
-                <table className="photo-exact-ledger">
-                  <thead><tr><th>DENOM</th><th>QTY</th><th style={{ textAlign: 'right' }}>TOTAL</th></tr></thead>
-                  <tbody>
-                    {sortedDenoms.map((d, i) => (<tr key={i}><td>₹ {d.denom}</td><td>{d.qty}</td><td style={{ textAlign: 'right' }}>{fmt(d.total)}</td></tr>))}
-                    <tr style={{ fontWeight: 'bold' }}><td colSpan={2} style={{ textAlign: 'right' }}>TOTAL:</td><td style={{ textAlign: 'right' }}>{fmt(totalCash)}</td></tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Sales Summary */}
-              <div style={{ width: '45%' }}>
-                <p style={{ margin: '0 0 8px 0', fontSize: '9pt', fontWeight: 'bold' }}>Total Sale Summary</p>
-                <table className="photo-exact-ledger">
-                  <thead><tr><th>BRANCH NAME</th><th style={{ textAlign: 'right' }}>SALE AMOUNT</th></tr></thead>
-                  <tbody>
-                    <tr><td>Paldi Branch</td><td style={{ textAlign: 'right' }}>{fmt(saleSum.paldi)}</td></tr>
-                    <tr><td>Nehrunagar Branch</td><td style={{ textAlign: 'right' }}>{fmt(saleSum.nehru)}</td></tr>
-                    <tr><td>Bopal Branch</td><td style={{ textAlign: 'right' }}>{fmt(saleSum.bopal)}</td></tr>
-                    <tr><td>Sciencecity Branch</td><td style={{ textAlign: 'right' }}>{fmt(saleSum.scity)}</td></tr>
-                    <tr style={{ fontWeight: 'bold', background: '#f5f5f5 !important' }}>
-                      <td style={{ textAlign: 'right' }}>GRAND TOTAL:</td>
-                      <td style={{ textAlign: 'right' }}>{fmt(saleSum.total)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              <p style={{ margin: '0 0 8px 0', fontSize: '9pt', fontWeight: 'bold' }}>Currency Distribution (Aggregated)</p>
+              <table className="photo-exact-ledger">
+                <thead><tr><th>DENOM</th><th>QTY</th><th style={{ textAlign: 'right' }}>TOTAL</th></tr></thead>
+                <tbody>
+                  {sortedDenoms.map((d, i) => (<tr key={i}><td>₹ {d.denom}</td><td>{d.qty}</td><td style={{ textAlign: 'right' }}>{fmt(d.total)}</td></tr>))}
+                  <tr style={{ fontWeight: 'bold' }}><td colSpan={2} style={{ textAlign: 'right' }}>TOTAL:</td><td style={{ textAlign: 'right' }}>{fmt(totalCash)}</td></tr>
+                </tbody>
+              </table>
             </div>
           )}
 
@@ -463,22 +430,13 @@ export default function AdminDashboard() {
               <button onClick={() => { setDateFilter(''); setEndDateFilter(''); setBranchFilter(''); setShiftFilter(''); }} className="btn-ghost" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>Clear All</button>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button 
-              onClick={() => handlePrint('report', false)} 
-              className="btn-primary animate-pulse-glow" 
-              style={{ padding: '0.65rem 1.2rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 8px 25px rgba(99,102,241,0.4)', whiteSpace: 'nowrap' }}
-            >
-              <Printer size={16} /> Print Summary
-            </button>
-            <button 
-              onClick={() => exportToExcel('report')} 
-              className="btn-ghost" 
-              style={{ padding: '0.65rem 1.2rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 8, border: '1px solid var(--primary-light)', color: 'var(--primary-light)', whiteSpace: 'nowrap' }}
-            >
-              <FileDown size={16} /> Save to Excel
-            </button>
-          </div>
+          <button 
+            onClick={() => handlePrint('report', true)} 
+            className="btn-primary animate-pulse-glow" 
+            style={{ padding: '0.65rem 1.5rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 8px 25px rgba(99,102,241,0.5)', whiteSpace: 'nowrap' }}
+          >
+            <Printer size={18} /> Print & Save Summary
+          </button>
         </div>
       </div>
 
@@ -652,7 +610,14 @@ export default function AdminDashboard() {
                 <div><h3 style={{ color: '#10b981' }}>Denominations</h3>{parseJSON(selectedReport.denominations).map((d, i) => (<div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}><span>₹{d.denomination} x {d.quantity}</span><span>₹{fmt(d.total)}</span></div>))}</div>
                 <div>
                   <h3 style={{ color: '#6366f1' }}>Payment Breakdown</h3>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>UPI / CARD</span><span>₹{fmt(selectedReport.card_upi_total)}</span></div>
+                  {selectedReport.card_total > 0 || selectedReport.upi_total > 0 ? (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Card Payments</span><span>₹{fmt(selectedReport.card_total)}</span></div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>UPI Payments</span><span>₹{fmt(selectedReport.upi_total)}</span></div>
+                    </>
+                  ) : (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>UPI / CARD</span><span>₹{fmt(selectedReport.card_upi_total)}</span></div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Credit Note</span><span>₹{fmt(selectedReport.credit_note_total)}</span></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Sodexo</span><span>₹{fmt(selectedReport.sodexo_total)}</span></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Cheque</span><span>₹{fmt(selectedReport.cheque_total)}</span></div>
