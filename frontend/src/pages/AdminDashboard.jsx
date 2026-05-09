@@ -426,13 +426,22 @@ export default function AdminDashboard() {
               <button onClick={() => { setDateFilter(''); setEndDateFilter(''); setBranchFilter(''); setShiftFilter(''); }} className="btn-ghost" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>Clear All</button>
             </div>
           </div>
-          <button 
-            onClick={() => handlePrint('report', true)} 
-            className="btn-primary animate-pulse-glow" 
-            style={{ padding: '0.65rem 1.5rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 8px 25px rgba(99,102,241,0.5)', whiteSpace: 'nowrap' }}
-          >
-            <Printer size={18} /> Print & Save Summary
-          </button>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button 
+              onClick={() => handlePrint('report')} 
+              className="btn-primary animate-pulse-glow" 
+              style={{ padding: '0.65rem 1.5rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 8px 25px rgba(99,102,241,0.5)', whiteSpace: 'nowrap' }}
+            >
+              <Printer size={18} /> Print Summary
+            </button>
+            <button 
+              onClick={() => exportToExcel('report')} 
+              className="btn-ghost" 
+              style={{ padding: '0.65rem 1.5rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 10, border: '1px solid var(--glass-border)', whiteSpace: 'nowrap', background: 'rgba(255,255,255,0.05)' }}
+            >
+              <FileSpreadsheet size={18} /> Save to Excel
+            </button>
+          </div>
         </div>
       </div>
 
