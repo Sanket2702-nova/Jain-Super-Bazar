@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   RefreshCw, Printer, Plus, Edit2, Trash2,
   Shield, ShieldOff, X, Filter, Calendar, Eye, IndianRupee, FileText, Ticket, Notebook,
-  FileSpreadsheet, ChevronDown
+  FileSpreadsheet, FileDown, ChevronDown
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -463,13 +463,22 @@ export default function AdminDashboard() {
               <button onClick={() => { setDateFilter(''); setEndDateFilter(''); setBranchFilter(''); setShiftFilter(''); }} className="btn-ghost" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>Clear All</button>
             </div>
           </div>
-          <button 
-            onClick={() => handlePrint('report', true)} 
-            className="btn-primary animate-pulse-glow" 
-            style={{ padding: '0.65rem 1.5rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 8px 25px rgba(99,102,241,0.5)', whiteSpace: 'nowrap' }}
-          >
-            <Printer size={18} /> Print & Save Summary
-          </button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button 
+              onClick={() => handlePrint('report', false)} 
+              className="btn-primary animate-pulse-glow" 
+              style={{ padding: '0.65rem 1.2rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 8px 25px rgba(99,102,241,0.4)', whiteSpace: 'nowrap' }}
+            >
+              <Printer size={16} /> Print Summary
+            </button>
+            <button 
+              onClick={() => exportToExcel('report')} 
+              className="btn-ghost" 
+              style={{ padding: '0.65rem 1.2rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 8, border: '1px solid var(--primary-light)', color: 'var(--primary-light)', whiteSpace: 'nowrap' }}
+            >
+              <FileDown size={16} /> Save to Excel
+            </button>
+          </div>
         </div>
       </div>
 
