@@ -188,16 +188,6 @@ export default function AdminDashboard() {
   const totalSys   = reports.reduce((a, r) => a + +r.system_total, 0);
   const diff       = totalColl - totalSys;
 
-  // New Sale Summary Logic
-  const paldiSys = reports.filter(r => ['Slave 1', 'Slave 2', 'Slave 3'].includes(r.branch_name)).reduce((a, r) => a + +r.system_total, 0);
-  const slave4Bill = reports.filter(r => r.branch_name === 'Slave 4').reduce((a, r) => a + +r.bill_amount, 0);
-  const paldiTotal = paldiSys + slave4Bill;
-
-  const nehrunagarTotal = reports.filter(r => r.branch_name === 'JSB03').reduce((a, r) => a + +r.system_total, 0);
-  const bopalTotal = reports.filter(r => r.branch_name === 'JSB05').reduce((a, r) => a + +r.system_total, 0);
-  const sciencecityTotal = reports.filter(r => r.branch_name === 'JSB07').reduce((a, r) => a + +r.system_total, 0);
-  const grandSaleTotal = paldiTotal + nehrunagarTotal + bopalTotal + sciencecityTotal;
-
   const aggDenoms = {};
   reports.forEach(r => {
     const dList = parseJSON(r.denominations);
@@ -208,6 +198,19 @@ export default function AdminDashboard() {
     });
   });
   const sortedDenoms = Object.entries(aggDenoms).sort((a,b) => b[0] - a[0]).map(([denom, val]) => ({ denom, ...val }));
+  
+  const saleSum = (() => {
+    let paldi = 0, nehru = 0, bopal = 0, scity = 0;
+    reports.forEach(r => {
+      const b = r.branch_name?.toLowerCase().replace(/\s+/g, '') || '';
+      if (['slave1', 'slave2', 'slave3'].includes(b)) paldi += +r.system_total;
+      if (b === 'slave4') paldi += +r.bill_amount;
+      if (b === 'jsb03') nehru += +r.system_total;
+      if (b === 'jsb05') bopal += +r.system_total;
+      if (b === 'jsb07') scity += +r.system_total;
+    });
+    return { paldi, nehru, bopal, scity, total: paldi + nehru + bopal + scity };
+  })();
 
   const allExps = [];
   const allCheques = [];
@@ -368,36 +371,33 @@ export default function AdminDashboard() {
           </table>
 
 
-          {printMode === 'report' && (
-            <div style={{ display: 'flex', gap: '40px', marginTop: '30px' }}>
+          {printMode === 'report' && sortedDenoms.length > 0 && (
+            <div style={{ marginTop: '30px', display: 'flex', gap: '5%', alignItems: 'flex-start' }}>
               {/* Currency Dist */}
-              {sortedDenoms.length > 0 && (
-                <div style={{ width: '40%' }}>
-                  <p style={{ margin: '0 0 8px 0', fontSize: '9pt', fontWeight: 'bold' }}>Currency Distribution (Aggregated)</p>
-                  <table className="photo-exact-ledger">
-                    <thead><tr><th>DENOM</th><th>QTY</th><th style={{ textAlign: 'right' }}>TOTAL</th></tr></thead>
-                    <tbody>
-                      {sortedDenoms.map((d, i) => (<tr key={i}><td>₹ {d.denom}</td><td>{d.qty}</td><td style={{ textAlign: 'right' }}>{fmt(d.total)}</td></tr>))}
-                      <tr style={{ fontWeight: 'bold' }}><td colSpan={2} style={{ textAlign: 'right' }}>TOTAL:</td><td style={{ textAlign: 'right' }}>{fmt(totalCash)}</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              <div style={{ width: '40%' }}>
+                <p style={{ margin: '0 0 8px 0', fontSize: '9pt', fontWeight: 'bold' }}>Currency Distribution (Aggregated)</p>
+                <table className="photo-exact-ledger">
+                  <thead><tr><th>DENOM</th><th>QTY</th><th style={{ textAlign: 'right' }}>TOTAL</th></tr></thead>
+                  <tbody>
+                    {sortedDenoms.map((d, i) => (<tr key={i}><td>₹ {d.denom}</td><td>{d.qty}</td><td style={{ textAlign: 'right' }}>{fmt(d.total)}</td></tr>))}
+                    <tr style={{ fontWeight: 'bold' }}><td colSpan={2} style={{ textAlign: 'right' }}>TOTAL:</td><td style={{ textAlign: 'right' }}>{fmt(totalCash)}</td></tr>
+                  </tbody>
+                </table>
+              </div>
 
-              {/* Sale Summary */}
+              {/* Sales Summary */}
               <div style={{ width: '45%' }}>
                 <p style={{ margin: '0 0 8px 0', fontSize: '9pt', fontWeight: 'bold' }}>Total Sale Summary</p>
                 <table className="photo-exact-ledger">
-                  <thead>
-                    <tr><th>BRANCH NAME</th><th style={{ textAlign: 'right' }}>SALE AMOUNT</th></tr>
-                  </thead>
+                  <thead><tr><th>BRANCH NAME</th><th style={{ textAlign: 'right' }}>SALE AMOUNT</th></tr></thead>
                   <tbody>
-                    <tr><td>Paldi Branch</td><td style={{ textAlign: 'right' }}>{fmt(paldiTotal)}</td></tr>
-                    <tr><td>Nehrunagar</td><td style={{ textAlign: 'right' }}>{fmt(nehrunagarTotal)}</td></tr>
-                    <tr><td>Bopal</td><td style={{ textAlign: 'right' }}>{fmt(bopalTotal)}</td></tr>
-                    <tr><td>Sciencecity</td><td style={{ textAlign: 'right' }}>{fmt(sciencecityTotal)}</td></tr>
-                    <tr style={{ fontWeight: 'bold', background: '#f0f0f0 !important' }}>
-                      <td>GRAND TOTAL</td><td style={{ textAlign: 'right' }}>{fmt(grandSaleTotal)}</td>
+                    <tr><td>Paldi Branch</td><td style={{ textAlign: 'right' }}>{fmt(saleSum.paldi)}</td></tr>
+                    <tr><td>Nehrunagar Branch</td><td style={{ textAlign: 'right' }}>{fmt(saleSum.nehru)}</td></tr>
+                    <tr><td>Bopal Branch</td><td style={{ textAlign: 'right' }}>{fmt(saleSum.bopal)}</td></tr>
+                    <tr><td>Sciencecity Branch</td><td style={{ textAlign: 'right' }}>{fmt(saleSum.scity)}</td></tr>
+                    <tr style={{ fontWeight: 'bold', background: '#f5f5f5 !important' }}>
+                      <td style={{ textAlign: 'right' }}>GRAND TOTAL:</td>
+                      <td style={{ textAlign: 'right' }}>{fmt(saleSum.total)}</td>
                     </tr>
                   </tbody>
                 </table>
