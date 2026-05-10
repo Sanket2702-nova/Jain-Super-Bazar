@@ -199,17 +199,13 @@ export default function AdminDashboard() {
   });
   const sortedDenoms = Object.entries(aggDenoms).sort((a,b) => b[0] - a[0]).map(([denom, val]) => ({ denom, ...val }));
   
-  // Total Sale Summary Logic
-  const paldiSale = reports.reduce((acc, r) => {
-    const b = r.branch_name?.toLowerCase() || '';
-    if (['slave 1', 'slave 2', 'slave 3'].includes(b)) return acc + (+r.system_total || 0);
-    if (b === 'slave 4') return acc + (+r.bill_amount || 0);
-    return acc;
-  }, 0);
-  const nehrunagarSale = reports.reduce((acc, r) => (r.branch_name?.toLowerCase() === 'jsb03' ? acc + (+r.system_total || 0) : acc), 0);
-  const bopalSale = reports.reduce((acc, r) => (r.branch_name?.toLowerCase() === 'jsb05' ? acc + (+r.system_total || 0) : acc), 0);
-  const scienceCitySale = reports.reduce((acc, r) => (r.branch_name?.toLowerCase() === 'jsb07' ? acc + (+r.system_total || 0) : acc), 0);
-  const totalSaleValue = paldiSale + nehrunagarSale + bopalSale + scienceCitySale;
+  // Sale Summary Logic
+  const paldiSale = reports.filter(r => ['Slave 1', 'Slave 2', 'Slave 3'].includes(r.branch_name)).reduce((a,r) => a + +r.system_total, 0) + 
+                    reports.filter(r => r.branch_name === 'Slave 4').reduce((a,r) => a + +r.bill_amount, 0);
+  const nehrunagarSale = reports.filter(r => r.branch_name === 'JSB03').reduce((a,r) => a + +r.system_total, 0);
+  const bopalSale = reports.filter(r => r.branch_name === 'JSB05').reduce((a,r) => a + +r.system_total, 0);
+  const sciencecitySale = reports.filter(r => r.branch_name === 'JSB07').reduce((a,r) => a + +r.system_total, 0);
+  const grandTotalSale = paldiSale + nehrunagarSale + bopalSale + sciencecitySale;
 
   const allExps = [];
   const allCheques = [];
@@ -274,13 +270,15 @@ export default function AdminDashboard() {
       }));
       data.push({ 'Date': 'GRAND TOTAL', 'Cash': totalCash, 'UPI': totalUPI, 'Card': totalCard, 'Credit Note': totalCN, 'Sodexo': totalSod, 'Cheques': totalChq, 'Expenses': totalExp, 'System Total': totalSys, 'Difference': diff, 'Grand Total': totalColl });
       
-      data.push({}); // Spacer
+      // Add Sale Summary
+      data.push({});
       data.push({ 'Date': 'TOTAL SALE SUMMARY' });
-      data.push({ 'Date': 'Paldi Branch', 'Cash': paldiSale });
-      data.push({ 'Date': 'Nehrunagar', 'Cash': nehrunagarSale });
-      data.push({ 'Date': 'Bopal', 'Cash': bopalSale });
-      data.push({ 'Date': 'Science City', 'Cash': scienceCitySale });
-      data.push({ 'Date': 'SALE GRAND TOTAL', 'Cash': totalSaleValue });
+      data.push({ 'Date': 'Branch Name', 'Branch': 'Sale Amount' });
+      data.push({ 'Date': 'Paldi Branch', 'Branch': paldiSale });
+      data.push({ 'Date': 'Nehrunagar', 'Branch': nehrunagarSale });
+      data.push({ 'Date': 'Bopal', 'Branch': bopalSale });
+      data.push({ 'Date': 'Sciencecity', 'Branch': sciencecitySale });
+      data.push({ 'Date': 'GRAND TOTAL SALE', 'Branch': grandTotalSale });
     } else if (mode === 'expense') {
       fileName = `Expenses_${getTodayIST()}.xlsx`;
       data = allExps.map(e => ({ 'Date': formatDate(e.date), 'Branch': e.branch, 'Shift': `S${e.shift}`, 'Description': e.desc, 'Amount': +e.amount }));
@@ -392,17 +390,21 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {printMode === 'report' && reports.length > 0 && (
+          {printMode === 'report' && (
             <div style={{ marginTop: '30px', width: '40%' }}>
-              <p style={{ margin: '0 0 8px 0', fontSize: '9pt', fontWeight: 'bold' }}>Total Sale Summary</p>
+              <p style={{ margin: '0 0 8px 0', fontSize: '10pt', fontWeight: 'bold', color: '#111' }}>Total Sale Summary</p>
               <table className="photo-exact-ledger">
-                <thead><tr><th>BRANCH NAME</th><th style={{ textAlign: 'right' }}>SALE AMOUNT</th></tr></thead>
+                <thead>
+                  <tr><th>Branch Name</th><th style={{ textAlign: 'right' }}>Sale Amount</th></tr>
+                </thead>
                 <tbody>
                   <tr><td>Paldi Branch</td><td style={{ textAlign: 'right' }}>{fmt(paldiSale)}</td></tr>
                   <tr><td>Nehrunagar</td><td style={{ textAlign: 'right' }}>{fmt(nehrunagarSale)}</td></tr>
                   <tr><td>Bopal</td><td style={{ textAlign: 'right' }}>{fmt(bopalSale)}</td></tr>
-                  <tr><td>Science City</td><td style={{ textAlign: 'right' }}>{fmt(scienceCitySale)}</td></tr>
-                  <tr style={{ fontWeight: 'bold' }}><td style={{ textAlign: 'right' }}>GRAND TOTAL:</td><td style={{ textAlign: 'right' }}>{fmt(totalSaleValue)}</td></tr>
+                  <tr><td>Sciencecity</td><td style={{ textAlign: 'right' }}>{fmt(sciencecitySale)}</td></tr>
+                  <tr style={{ fontWeight: 'bold', background: '#f5f5f5 !important' }}>
+                    <td>Grand Total</td><td style={{ textAlign: 'right' }}>{fmt(grandTotalSale)}</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
