@@ -44,6 +44,8 @@ router.post('/', auth, upload.any(), async (req, res) => {
         const bill_amount = parseFloat(req.body.bill_amount || 0);
         const denominations = req.body.denominations;
         const cheques = req.body.cheques;
+        const card_total = parseFloat(req.body.card_total || 0);
+        const upi_total = parseFloat(req.body.upi_total || 0);
         let { expense_desc } = req.body;
 
         const parsedDenoms = JSON.parse(denominations || '[]');
@@ -140,7 +142,9 @@ router.post('/', auth, upload.any(), async (req, res) => {
             total_cash,
             grand_total,
             shift,
-            bill_amount
+            bill_amount,
+            card_total,
+            upi_total
         };
 
         if (existingReport) {

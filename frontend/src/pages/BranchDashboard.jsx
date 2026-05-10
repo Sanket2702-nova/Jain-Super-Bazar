@@ -40,6 +40,8 @@ export default function BranchDashboard() {
   const [creditNote, setCreditNote] = useState('');
   const [billAmount, setBillAmount] = useState('');
   const [cardProof, setCardProof] = useState(null);
+  const [upiTotal, setUpiTotal] = useState('');
+  const [cardTotal, setCardTotal] = useState('');
   const [expenses, setExpenses] = useState([{ amount:'', desc:'', proof:null }]);
   const [cheques, setCheques] = useState([{ cheque_no:'', amount:'', cheque_date:'' }]);
 
@@ -77,6 +79,7 @@ export default function BranchDashboard() {
   const resetForm = () => {
     setDenoms(DENOMS.map(d => ({denomination:d,quantity:0,total:0})));
     setSystemTotal(''); setCardUpi(''); setSodexo(''); setCreditNote(''); setBillAmount('');
+    setUpiTotal(''); setCardTotal('');
     setCardProof(null); setExpenses([{amount:'',desc:'',proof:null}]);
     setCheques([{cheque_no:'',amount:'',cheque_date:''}]);
   };
@@ -147,7 +150,11 @@ export default function BranchDashboard() {
     fd.append('card_upi_total', cardUpi||0);
     fd.append('sodexo_total', sodexo||0);
     fd.append('credit_note_total', creditNote||0);
-    if (user.username?.toLowerCase()==='slave4') fd.append('bill_amount', billAmount||0);
+    if (user.username?.toLowerCase()==='slave4') {
+      fd.append('bill_amount', billAmount||0);
+      fd.append('card_total', cardTotal||0);
+      fd.append('upi_total', upiTotal||0);
+    }
     const validExp = expenses.filter(e=>parseFloat(e.amount)>0);
     fd.append('expense', totalExp);
     fd.append('expense_desc', JSON.stringify(validExp.map(e=>({amount:e.amount,desc:e.desc}))));
@@ -281,7 +288,7 @@ export default function BranchDashboard() {
                 💳 Digital & System
               </h2>
 
-              {user.username?.toLowerCase()==='slave4' && (
+              {(user.username?.toLowerCase()==='slave4' || user.branch_name?.toLowerCase()==='slave 4') && (
                 <div>
                   <label className="form-label" style={{ color:'#fbbf24' }}>Total Bill Amount ⚠️ (Required)</label>
                   <input type="number" step="0.01" className="form-input" placeholder="₹ 0.00"
@@ -291,25 +298,50 @@ export default function BranchDashboard() {
                 </div>
               )}
 
-              <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:10, alignItems:'end' }}>
-                <div>
-                  <label className="form-label">Card & UPI Payments</label>
-                  <input type="number" step="0.01" className="form-input" placeholder="₹ 0.00"
-                    value={cardUpi} onWheel={e=>e.target.blur()} onChange={e=>setCardUpi(e.target.value)} />
+              {(user.username?.toLowerCase() === 'slave4' || user.branch_name?.toLowerCase() === 'slave 4') ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div>
+                    <label className="form-label">UPI Payments</label>
+                    <input type="number" step="0.01" className="form-input" placeholder="₹ 0.00"
+                      value={upiTotal} onWheel={e => e.target.blur()} 
+                      onChange={e => {
+                        setUpiTotal(e.target.value);
+                        const combined = parseFloat(e.target.value || 0) + parseFloat(cardTotal || 0);
+                        setCardUpi(combined.toString());
+                      }} />
+                  </div>
+                  <div>
+                    <label className="form-label">Card Payments</label>
+                    <input type="number" step="0.01" className="form-input" placeholder="₹ 0.00"
+                      value={cardTotal} onWheel={e => e.target.blur()} 
+                      onChange={e => {
+                        setCardTotal(e.target.value);
+                        const combined = parseFloat(upiTotal || 0) + parseFloat(e.target.value || 0);
+                        setCardUpi(combined.toString());
+                      }} />
+                  </div>
                 </div>
-                <div>
-                  <label className="form-label">Proof</label>
-                  <label style={{
-                    display:'flex', alignItems:'center', gap:6, padding:'0.65rem 0.85rem',
-                    background:'rgba(255,255,255,0.05)', border:'1px solid var(--glass-border)',
-                    borderRadius:'var(--radius-sm)', cursor:'pointer', fontSize:'0.8rem', color:'var(--text-secondary)',
-                    whiteSpace:'nowrap'
-                  }}>
-                    <Upload size={14}/> {cardProof ? cardProof.name.slice(0,10)+'…' : 'Upload'}
-                    <input type="file" style={{display:'none'}} onChange={e=>setCardProof(e.target.files[0])} />
-                  </label>
+              ) : (
+                <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:10, alignItems:'end' }}>
+                  <div>
+                    <label className="form-label">Card & UPI Payments</label>
+                    <input type="number" step="0.01" className="form-input" placeholder="₹ 0.00"
+                      value={cardUpi} onWheel={e=>e.target.blur()} onChange={e=>setCardUpi(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="form-label">Proof</label>
+                    <label style={{
+                      display:'flex', alignItems:'center', gap:6, padding:'0.65rem 0.85rem',
+                      background:'rgba(255,255,255,0.05)', border:'1px solid var(--glass-border)',
+                      borderRadius:'var(--radius-sm)', cursor:'pointer', fontSize:'0.8rem', color:'var(--text-secondary)',
+                      whiteSpace:'nowrap'
+                    }}>
+                      <Upload size={14}/> {cardProof ? cardProof.name.slice(0,10)+'…' : 'Upload'}
+                      <input type="file" style={{display:'none'}} onChange={e=>setCardProof(e.target.files[0])} />
+                    </label>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                 <div>

@@ -178,7 +178,8 @@ export default function AdminDashboard() {
   };
 
   const totalCash  = reports.reduce((a, r) => a + +r.total_cash, 0);
-  const totalUPI   = reports.reduce((a, r) => a + +r.card_upi_total, 0);
+  const totalUPI   = reports.reduce((a, r) => a + (r.upi_total > 0 ? +r.upi_total : (r.card_total > 0 ? 0 : +r.card_upi_total)), 0);
+  const totalCard  = reports.reduce((a, r) => a + (r.card_total > 0 ? +r.card_total : 0), 0);
   const totalCN    = reports.reduce((a, r) => a + +r.credit_note_total, 0); 
   const totalSod   = reports.reduce((a, r) => a + +r.sodexo_total, 0);
   const totalChq   = reports.reduce((a, r) => a + +r.cheque_total, 0);
@@ -249,7 +250,8 @@ export default function AdminDashboard() {
         'Branch': r.branch_name,
         'Shift': `S${r.shift}`,
         'Cash': +r.total_cash,
-        'UPI/Card': +r.card_upi_total,
+        'UPI': r.upi_total > 0 ? +r.upi_total : (r.card_total > 0 ? 0 : +r.card_upi_total),
+        'Card': r.card_total > 0 ? +r.card_total : (r.upi_total > 0 ? 0 : 0),
         'Credit Note': +r.credit_note_total,
         'Sodexo': +r.sodexo_total,
         'Cheques': +r.cheque_total,
@@ -258,7 +260,7 @@ export default function AdminDashboard() {
         'Difference': +r.grand_total - +r.system_total,
         'Grand Total': +r.grand_total
       }));
-      data.push({ 'Date': 'GRAND TOTAL', 'Cash': totalCash, 'UPI/Card': totalUPI, 'Credit Note': totalCN, 'Sodexo': totalSod, 'Cheques': totalChq, 'Expenses': totalExp, 'System Total': totalSys, 'Difference': diff, 'Grand Total': totalColl });
+      data.push({ 'Date': 'GRAND TOTAL', 'Cash': totalCash, 'UPI': totalUPI, 'Card': totalCard, 'Credit Note': totalCN, 'Sodexo': totalSod, 'Cheques': totalChq, 'Expenses': totalExp, 'System Total': totalSys, 'Difference': diff, 'Grand Total': totalColl });
     } else if (mode === 'expense') {
       fileName = `Expenses_${getTodayIST()}.xlsx`;
       data = allExps.map(e => ({ 'Date': formatDate(e.date), 'Branch': e.branch, 'Shift': `S${e.shift}`, 'Description': e.desc, 'Amount': +e.amount }));
@@ -302,7 +304,7 @@ export default function AdminDashboard() {
             <thead>
               {printMode === 'report' ? (
                 <tr>
-                  <th>DATE</th><th>BRANCH</th><th>SHIFT</th><th>CASH</th><th>UPI/CARD</th><th>CN</th><th>SODEXO</th><th>CHQ</th><th>EXPENSE</th><th>SYS TOTAL</th><th>DIFF</th><th style={{ textAlign: 'right' }}>TOTAL</th>
+                  <th>DATE</th><th>BRANCH</th><th>SHIFT</th><th>CASH</th><th>UPI</th><th>CARD</th><th>CN</th><th>SODEXO</th><th>CHQ</th><th>EXPENSE</th><th>SYS TOTAL</th><th>DIFF</th><th style={{ textAlign: 'right' }}>TOTAL</th>
                 </tr>
 
               ) : printMode === 'expense' ? (
@@ -316,7 +318,10 @@ export default function AdminDashboard() {
                 reports.map((r, i) => (
                   <tr key={i}>
                     <td>{formatDate(r.report_date)}</td><td>{r.branch_name}</td><td style={{ textAlign: 'center' }}>S{r.shift}</td>
-                    <td>{fmt(r.total_cash)}</td><td>{fmt(r.card_upi_total)}</td><td>{fmt(r.credit_note_total)}</td><td>{fmt(r.sodexo_total)}</td><td>{fmt(r.cheque_total)}</td>
+                    <td>{fmt(r.total_cash)}</td>
+                    <td style={{ color: '#818cf8', fontWeight: 600 }}>{r.upi_total > 0 ? fmt(r.upi_total) : (r.card_total > 0 ? '0.00' : fmt(r.card_upi_total))}</td>
+                    <td style={{ color: '#6366f1', fontWeight: 600 }}>{r.card_total > 0 ? fmt(r.card_total) : (r.upi_total > 0 ? '0.00' : '-')}</td>
+                    <td>{fmt(r.credit_note_total)}</td><td>{fmt(r.sodexo_total)}</td><td>{fmt(r.cheque_total)}</td>
                     <td style={{ color: '#ef4444' }}>{fmt(r.expense)}</td>
                     <td>{fmt(r.system_total)}</td>
                     <td style={{ color: +r.grand_total - +r.system_total >= 0 ? '#10b981' : '#ef4444' }}>{fmt(+r.grand_total - +r.system_total)}</td>
@@ -339,6 +344,7 @@ export default function AdminDashboard() {
                   <td colSpan={3} style={{ textAlign: 'right' }}>GRAND TOTAL:</td>
                   <td>{fmt(totalCash)}</td>
                   <td>{fmt(totalUPI)}</td>
+                  <td>{fmt(totalCard)}</td>
                   <td>{fmt(totalCN)}</td>
                   <td>{fmt(totalSod)}</td>
                   <td>{fmt(totalChq)}</td>
