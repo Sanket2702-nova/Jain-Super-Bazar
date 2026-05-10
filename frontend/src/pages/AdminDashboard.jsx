@@ -199,12 +199,24 @@ export default function AdminDashboard() {
   });
   const sortedDenoms = Object.entries(aggDenoms).sort((a,b) => b[0] - a[0]).map(([denom, val]) => ({ denom, ...val }));
   
-  // Custom Sale Calculations
-  const paldiSale = reports.filter(r => ['Slave 1', 'Slave 2', 'Slave 3'].includes(r.branch_name)).reduce((a, b) => a + +b.system_total, 0) +
-                    reports.filter(r => r.branch_name === 'Slave 4').reduce((a, b) => a + +b.bill_amount, 0);
-  const nehrunagarSale = reports.filter(r => r.branch_name === 'JSB03').reduce((a, b) => a + +b.system_total, 0);
-  const bopalSale = reports.filter(r => r.branch_name === 'JSB05').reduce((a, b) => a + +b.system_total, 0);
-  const sciencecitySale = reports.filter(r => r.branch_name === 'JSB07').reduce((a, b) => a + +b.system_total, 0);
+  // Sale calculations for print section
+  const paldiSale = reports.filter(r => 
+    r.branch_name?.toLowerCase() === 'slave 1' || 
+    r.branch_name?.toLowerCase() === 'slave 2' || 
+    r.branch_name?.toLowerCase() === 'slave 3'
+  ).reduce((a, r) => a + +r.system_total, 0) + 
+  reports.filter(r => r.branch_name?.toLowerCase() === 'slave 4')
+    .reduce((a, r) => a + +r.bill_amount, 0);
+
+  const nehrunagarSale = reports.filter(r => r.branch_name?.toLowerCase() === 'jsb03')
+    .reduce((a, r) => a + +r.system_total, 0);
+
+  const bopalSale = reports.filter(r => r.branch_name?.toLowerCase() === 'jsb05')
+    .reduce((a, r) => a + +r.system_total, 0);
+
+  const sciencecitySale = reports.filter(r => r.branch_name?.toLowerCase() === 'jsb07')
+    .reduce((a, r) => a + +r.system_total, 0);
+
   const grandSaleTotal = paldiSale + nehrunagarSale + bopalSale + sciencecitySale;
 
   const allExps = [];
@@ -366,10 +378,10 @@ export default function AdminDashboard() {
           </table>
 
 
-          {printMode === 'report' && sortedDenoms.length > 0 && (
-            <div style={{ display: 'flex', gap: '40px', marginTop: '30px', alignItems: 'flex-start' }}>
+          {printMode === 'report' && (
+            <div style={{ marginTop: '30px', display: 'flex', gap: '40px', alignItems: 'flex-start' }}>
               {/* Currency Dist */}
-              <div style={{ width: '35%' }}>
+              <div style={{ width: '40%' }}>
                 <p style={{ margin: '0 0 8px 0', fontSize: '9pt', fontWeight: 'bold' }}>Currency Distribution (Aggregated)</p>
                 <table className="photo-exact-ledger">
                   <thead><tr><th>DENOM</th><th>QTY</th><th style={{ textAlign: 'right' }}>TOTAL</th></tr></thead>
@@ -381,21 +393,33 @@ export default function AdminDashboard() {
               </div>
 
               {/* Total Sale Section */}
-              <div style={{ width: '45%' }}>
-                <p style={{ margin: '0 0 8px 0', fontSize: '9pt', fontWeight: 'bold' }}>Total Sale</p>
+              <div style={{ width: '50%' }}>
+                <p style={{ margin: '0 0 8px 0', fontSize: '9pt', fontWeight: 'bold' }}>Total Sale (Branch Name & Sale Amount)</p>
                 <table className="photo-exact-ledger">
                   <thead>
                     <tr>
-                      <th>Branch Name</th>
-                      <th style={{ textAlign: 'right' }}>Sale Amount</th>
+                      <th>BRANCH NAME</th>
+                      <th style={{ textAlign: 'right' }}>SALE AMOUNT</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr><td>Paldi Branch</td><td style={{ textAlign: 'right' }}>{fmt(paldiSale)}</td></tr>
-                    <tr><td>Nehrunagar</td><td style={{ textAlign: 'right' }}>{fmt(nehrunagarSale)}</td></tr>
-                    <tr><td>Bopal</td><td style={{ textAlign: 'right' }}>{fmt(bopalSale)}</td></tr>
-                    <tr><td>Sciencecity</td><td style={{ textAlign: 'right' }}>{fmt(sciencecitySale)}</td></tr>
-                    <tr style={{ fontWeight: 'bold' }}>
+                    <tr>
+                      <td>Paldi Branch</td>
+                      <td style={{ textAlign: 'right' }}>{fmt(paldiSale)}</td>
+                    </tr>
+                    <tr>
+                      <td>Nehrunagar</td>
+                      <td style={{ textAlign: 'right' }}>{fmt(nehrunagarSale)}</td>
+                    </tr>
+                    <tr>
+                      <td>Bopal</td>
+                      <td style={{ textAlign: 'right' }}>{fmt(bopalSale)}</td>
+                    </tr>
+                    <tr>
+                      <td>Sciencecity</td>
+                      <td style={{ textAlign: 'right' }}>{fmt(sciencecitySale)}</td>
+                    </tr>
+                    <tr style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>
                       <td style={{ textAlign: 'right' }}>GRAND TOTAL:</td>
                       <td style={{ textAlign: 'right' }}>{fmt(grandSaleTotal)}</td>
                     </tr>
