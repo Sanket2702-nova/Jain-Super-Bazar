@@ -60,6 +60,37 @@ function LoginRedirect() {
 }
 
 export default function App() {
+  React.useEffect(() => {
+    const INACTIVITY_LIMIT = 60 * 60 * 1000; // 1 Hour
+    let timeout;
+
+    const logout = () => {
+      if (localStorage.getItem('token')) {
+        localStorage.clear();
+        window.location.href = '/login';
+      }
+    };
+
+    const resetTimer = () => {
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(logout, INACTIVITY_LIMIT);
+    };
+
+    // Events to track user activity
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    
+    // Only track if logged in
+    if (localStorage.getItem('token')) {
+      resetTimer();
+      events.forEach(evt => window.addEventListener(evt, resetTimer));
+    }
+
+    return () => {
+      if (timeout) clearTimeout(timeout);
+      events.forEach(evt => window.removeEventListener(evt, resetTimer));
+    };
+  }, []);
+
   return (
     <Router>
       <Routes>
