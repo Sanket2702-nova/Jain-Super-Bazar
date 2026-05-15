@@ -56,14 +56,13 @@ export default function AppShell({ children, user }) {
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.25rem 0.5rem 1.5rem' }}>
         <div style={{
-          width: 38, height: 38, borderRadius: 11, flexShrink: 0,
-          background: 'linear-gradient(135deg, var(--primary), var(--primary-light))',
+          width: 42, height: 42, borderRadius: 11, flexShrink: 0,
+          background: 'rgba(255,255,255,0.05)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 4px 14px rgba(99,102,241,0.4)'
+          boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
+          overflow: 'hidden'
         }}>
-
-
-          <IndianRupee size={18} color="#fff" />
+          <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </div>
         <div>
           <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '0.92rem', lineHeight: 1.2, color: 'var(--text-primary)' }}>

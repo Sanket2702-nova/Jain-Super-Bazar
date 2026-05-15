@@ -65,16 +65,19 @@ export default function Login() {
         >
           {/* Logo */}
           <div style={{ textAlign:'center', marginBottom:'2.5rem' }}>
-            <div style={{
-              width:64, height:64, borderRadius:18, margin:'0 auto 1.2rem',
-              background: 'linear-gradient(135deg, var(--primary), var(--primary-light))',
-              display:'flex', alignItems:'center', justifyContent:'center',
-              boxShadow: '0 8px 32px rgba(99,102,241,0.3)',
-            }}>
-
-
-              <IndianRupee size={32} color="#fff"/>
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="Logo" 
+              style={{ 
+                width: 80, 
+                height: 80, 
+                margin: '0 auto 1.2rem', 
+                borderRadius: 18,
+                boxShadow: '0 8px 32px rgba(99,102,241,0.3)',
+                display: 'block',
+                objectFit: 'contain'
+              }} 
+            />
             <h1 style={{
               fontFamily:'var(--font-heading)', fontWeight:800,
               fontSize:'1.8rem', marginBottom:'0.25rem', color: 'var(--text-primary)'
