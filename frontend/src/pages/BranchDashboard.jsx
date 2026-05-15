@@ -179,11 +179,15 @@ export default function BranchDashboard() {
 
   return (
     <div className="animate-fade-in">
-      {/* Header */}
-      <div style={{ marginBottom:'1.5rem' }}>
-        <h1 style={{ fontFamily:'var(--font-heading)', fontWeight:800, fontSize:'1.5rem', marginBottom:4 }}>
-          🏪 {user.branch_name} — Daily Cash Report
-        </h1>
+      <div style={{ marginBottom:'1.5rem', display: 'flex', alignItems: 'center', gap: 15 }}>
+        <img src="/logo.png" alt="Logo" style={{ width: 50, height: 50, objectFit: 'contain', borderRadius: 10 }} />
+        <div>
+          <h1 style={{ fontFamily:'var(--font-heading)', fontWeight:800, fontSize:'1.5rem', marginBottom:0 }}>
+            {user.branch_name}
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 600, margin: 0 }}>Daily Cash Report</p>
+        </div>
+      </div>
         <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
           <div 
             onClick={(e) => { const input = e.currentTarget.querySelector('input'); if(input && input.showPicker) input.showPicker(); }}

@@ -82,15 +82,8 @@ export default function Landing() {
         height:'64px',
         display:'flex', alignItems:'center', justifyContent:'space-between'
       }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <div style={{
-            width:36, height:36, borderRadius:10,
-            background:'linear-gradient(135deg, #6366f1, #a78bfa)',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            boxShadow:'0 4px 12px rgba(99,102,241,0.4)'
-          }}>
-            <IndianRupee size={18} color="#fff" />
-          </div>
+        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+          <img src="/logo.png" alt="Logo" style={{ width: 40, height: 40, borderRadius: 10, objectFit: 'contain' }} />
           <span style={{ fontFamily:'var(--font-heading)', fontWeight:700, fontSize:'1.1rem' }}>
             Jain Super Bazar
           </span>
@@ -322,8 +315,8 @@ export default function Landing() {
           color:'var(--text-muted)',
           fontSize:'0.82rem'
         }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:8 }}>
-            <IndianRupee size={14}/>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10, marginBottom:8 }}>
+            <img src="/logo.png" alt="Logo" style={{ width: 20, height: 20, objectFit: 'contain' }} />
             <span style={{ fontWeight:700, color:'var(--text-secondary)' }}>Jain Super Bazar</span>
             <span>— Daily Cash Reporting System</span>
           </div>

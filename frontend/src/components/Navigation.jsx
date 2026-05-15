@@ -15,7 +15,10 @@ function Navigation({ user }) {
   return (
     <Navbar expand="lg" variant="dark" className="mb-4">
       <Container>
-        <Navbar.Brand href="#" style={{ color: 'white', fontFamily: '"Arial Black", Gadget, sans-serif', fontWeight: 'bold', fontSize: '1.5rem' }}>JAIN SUPER BAZAR</Navbar.Brand>
+        <Navbar.Brand href="#" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'white', fontFamily: '"Arial Black", Gadget, sans-serif', fontWeight: 'bold', fontSize: '1.5rem' }}>
+          <img src="/logo.png" alt="Logo" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
+          JAIN SUPER BAZAR
+        </Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav" className="justify-content-end">
           <Nav className="align-items-center">
