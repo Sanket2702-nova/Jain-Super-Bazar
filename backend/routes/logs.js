@@ -3,30 +3,28 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const { getLogs, clearLogs } = require('../logger');
 
-// Middleware to check if user is Admin
 const isAdmin = (req, res, next) => {
-    if (req.user && req.user.role === 'Admin') {
-        next();
-    } else {
-        res.status(403).json({ error: 'Forbidden: Admin access required' });
-    }
+    if (req.user && req.user.role === 'Admin') return next();
+    return res.status(403).json({ error: 'Forbidden: Admin access required' });
 };
 
-router.get('/', auth, isAdmin, (req, res) => {
+// GET all logs
+router.get('/', auth, isAdmin, async (req, res) => {
     try {
-        const logs = getLogs();
+        const logs = await getLogs();
         res.json({ logs });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to read logs' });
+        res.status(500).json({ error: 'Failed to read logs: ' + error.message });
     }
 });
 
-router.delete('/', auth, isAdmin, (req, res) => {
+// DELETE all logs
+router.delete('/', auth, isAdmin, async (req, res) => {
     try {
-        clearLogs();
+        await clearLogs();
         res.json({ message: 'Logs cleared successfully' });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to clear logs' });
+        res.status(500).json({ error: 'Failed to clear logs: ' + error.message });
     }
 });
 

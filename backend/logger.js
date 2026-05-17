@@ -1,31 +1,44 @@
-const fs = require('fs');
-const path = require('path');
+const supabase = require('./supabase');
 
-const logFilePath = path.join(__dirname, 'logs', 'error.log');
+const logError = async (error, req = null) => {
+    try {
+        const method = req ? req.method : 'N/A';
+        const url = req ? req.originalUrl : 'N/A';
+        const user = req && req.user ? req.user.username : 'Guest';
+        const message = error.message || String(error);
+        const stack = error.stack || String(error);
 
-// Ensure log file exists
-if (!fs.existsSync(logFilePath)) {
-    fs.writeFileSync(logFilePath, '');
-}
-
-const logError = (error, req = null) => {
-    const timestamp = new Date().toISOString();
-    const method = req ? req.method : 'N/A';
-    const url = req ? req.originalUrl : 'N/A';
-    const user = req && req.user ? req.user.username : 'Guest';
-    
-    const logMessage = `[${timestamp}] | User: ${user} | Method: ${method} | URL: ${url}\nError: ${error.stack || error}\n${'='.repeat(80)}\n`;
-    
-    fs.appendFileSync(logFilePath, logMessage);
+        await supabase.from('error_logs').insert([{
+            method,
+            url,
+            username: user,
+            message,
+            stack,
+        }]);
+    } catch (e) {
+        // Silently fail to avoid recursive error loops
+        console.error('Logger failed to write to Supabase:', e.message);
+    }
 };
 
-const getLogs = () => {
-    if (!fs.existsSync(logFilePath)) return '';
-    return fs.readFileSync(logFilePath, 'utf8');
+const getLogs = async () => {
+    const { data, error } = await supabase
+        .from('error_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+    if (error) throw new Error(error.message);
+    return data || [];
 };
 
-const clearLogs = () => {
-    fs.writeFileSync(logFilePath, '');
+const clearLogs = async () => {
+    const { error } = await supabase
+        .from('error_logs')
+        .delete()
+        .gte('id', 0); // delete all rows
+
+    if (error) throw new Error(error.message);
 };
 
 module.exports = { logError, getLogs, clearLogs };

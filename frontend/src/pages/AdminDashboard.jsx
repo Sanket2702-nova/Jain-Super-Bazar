@@ -51,7 +51,7 @@ export default function AdminDashboard() {
   const [uLoading, setULoading] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
-  const [logs, setLogs] = useState('');
+  const [logs, setLogs] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
 
   useEffect(() => {
@@ -121,10 +121,10 @@ export default function AdminDashboard() {
     setLogsLoading(true);
     try {
       const res = await axios.get(`${API}/logs`, { headers: auth() });
-      setLogs(res.data.logs || 'No logs available.');
+      setLogs(Array.isArray(res.data.logs) ? res.data.logs : []);
     } catch (e) {
       console.error('fetchLogs', e);
-      setLogs('Error fetching logs: ' + e.message);
+      setLogs([]);
     } finally {
       setLogsLoading(false);
     }
@@ -601,35 +601,56 @@ export default function AdminDashboard() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button className="btn-ghost" onClick={fetchLogs} disabled={logsLoading}>
-            <RefreshCw size={16} style={{ marginRight: 6, animation: logsLoading ? 'spin 1s linear infinite' : 'none' }} />
+          <button className="btn-ghost" onClick={fetchLogs} disabled={logsLoading}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <RefreshCw size={16} style={{ animation: logsLoading ? 'spin 1s linear infinite' : 'none' }} />
             Refresh
           </button>
-          <button className="btn-ghost" style={{ color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }} onClick={handleClearLogs}>
-            <Trash2 size={16} style={{ marginRight: 6 }} />
+          <button className="btn-ghost" style={{ color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', gap: 6 }} onClick={handleClearLogs}>
+            <Trash2 size={16} />
             Clear Logs
           </button>
         </div>
       </div>
-      
-      <div style={{ 
-        background: '#0a0c14', 
-        borderRadius: 'var(--radius-md)', 
-        padding: '1.5rem', 
-        maxHeight: '600px', 
-        overflowY: 'auto',
-        border: '1px solid var(--glass-border)',
-        fontFamily: '"Fira Code", "Courier New", monospace',
-        fontSize: '0.85rem',
-        lineHeight: 1.6,
-        color: '#d1d5db',
-        whiteSpace: 'pre-wrap'
-      }}>
-        {logsLoading ? 'Loading logs...' : (logs || 'Logs are empty.')}
-      </div>
-      
+
+      {logsLoading ? (
+        <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>Loading logs...</p>
+      ) : logs.length === 0 ? (
+        <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>No errors logged. System is running clean ✅</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '600px', overflowY: 'auto' }}>
+          {logs.map((log, i) => (
+            <div key={log.id || i} style={{
+              background: '#0a0c14',
+              borderRadius: 'var(--radius-md)',
+              padding: '1rem 1.25rem',
+              border: '1px solid rgba(239,68,68,0.25)',
+              borderLeft: '3px solid #ef4444',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 8 }}>
+                <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', fontWeight: 700, color: '#ef4444' }}>
+                  {log.method} {log.url}
+                </span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  {log.username || 'Guest'} &bull; {log.created_at ? new Date(log.created_at).toLocaleString('en-IN') : ''}
+                </span>
+              </div>
+              <p style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.82rem', color: '#fca5a5', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                {log.message}
+              </p>
+              {log.stack && log.stack !== log.message && (
+                <details style={{ marginTop: 6 }}>
+                  <summary style={{ fontSize: '0.75rem', color: 'var(--text-muted)', cursor: 'pointer' }}>Stack Trace</summary>
+                  <pre style={{ margin: '6px 0 0', fontSize: '0.72rem', color: '#9ca3af', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{log.stack}</pre>
+                </details>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       <div style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-        * Logs are stored on the server in <code>backend/logs/error.log</code>
+        * Logs are stored in Supabase <code>error_logs</code> table. Showing last 200 entries.
       </div>
     </div>
   );
