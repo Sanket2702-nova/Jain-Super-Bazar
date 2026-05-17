@@ -22,6 +22,7 @@ export default function AppShell({ children, user }) {
     { icon: <LayoutDashboard size={18} />, label: 'Dashboard', tab: 'dashboard' },
     { icon: <Users size={18} />, label: 'Users', tab: 'users' },
     { icon: <Settings size={18} />, label: 'Settings', tab: 'settings' },
+    { icon: <FileText size={18} />, label: 'System Logs', tab: 'logs' },
   ];
 
   const branchLinks = [
@@ -202,7 +203,7 @@ export default function AppShell({ children, user }) {
             </button>
             <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>
               {isAdmin
-                ? (activeTab === 'users' ? '👥 User Management' : activeTab === 'settings' ? '⚙️ Settings' : '📊 Admin Dashboard')
+                ? (activeTab === 'users' ? '👥 User Management' : activeTab === 'settings' ? '⚙️ Settings' : activeTab === 'logs' ? '📜 System Logs' : '📊 Admin Dashboard')
                 : `🏪 ${user?.branch_name || 'Branch'} — Daily Report`}
             </span>
           </div>

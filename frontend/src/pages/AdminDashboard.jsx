@@ -51,6 +51,8 @@ export default function AdminDashboard() {
   const [uLoading, setULoading] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [logs, setLogs] = useState('');
+  const [logsLoading, setLogsLoading] = useState(false);
 
   useEffect(() => {
     fetchReports();
@@ -63,6 +65,9 @@ export default function AdminDashboard() {
     }
     if (tab === 'settings') {
       fetchSettings();
+    }
+    if (tab === 'logs') {
+      fetchLogs();
     }
   }, [tab]);
 
@@ -110,6 +115,30 @@ export default function AdminDashboard() {
       const r = await axios.get(`${API}/reports/settings`, { headers: auth() });
       setSettings(r.data);
     } catch (e) { console.error(e); }
+  };
+
+  const fetchLogs = async () => {
+    setLogsLoading(true);
+    try {
+      const res = await axios.get(`${API}/logs`, { headers: auth() });
+      setLogs(res.data.logs || 'No logs available.');
+    } catch (e) {
+      console.error('fetchLogs', e);
+      setLogs('Error fetching logs: ' + e.message);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  const handleClearLogs = async () => {
+    if (!window.confirm('Are you sure you want to clear all system logs? This cannot be undone.')) return;
+    try {
+      await axios.delete(`${API}/logs`, { headers: auth() });
+      setLogs('Logs cleared.');
+      alert('Logs cleared successfully');
+    } catch (e) {
+      alert('Error clearing logs');
+    }
   };
 
   const updateSetting = async (key, value) => {
@@ -562,6 +591,49 @@ export default function AdminDashboard() {
     </div>
   );
 
+  const LogsTab = () => (
+    <div className="glass-card" style={{ padding: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <div>
+          <h2 style={{ fontWeight: 800, fontSize: '1.2rem', margin: 0 }}>📜 System Error Logs</h2>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>
+            View recent backend errors and critical events for troubleshooting.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn-ghost" onClick={fetchLogs} disabled={logsLoading}>
+            <RefreshCw size={16} style={{ marginRight: 6, animation: logsLoading ? 'spin 1s linear infinite' : 'none' }} />
+            Refresh
+          </button>
+          <button className="btn-ghost" style={{ color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }} onClick={handleClearLogs}>
+            <Trash2 size={16} style={{ marginRight: 6 }} />
+            Clear Logs
+          </button>
+        </div>
+      </div>
+      
+      <div style={{ 
+        background: '#0a0c14', 
+        borderRadius: 'var(--radius-md)', 
+        padding: '1.5rem', 
+        maxHeight: '600px', 
+        overflowY: 'auto',
+        border: '1px solid var(--glass-border)',
+        fontFamily: '"Fira Code", "Courier New", monospace',
+        fontSize: '0.85rem',
+        lineHeight: 1.6,
+        color: '#d1d5db',
+        whiteSpace: 'pre-wrap'
+      }}>
+        {logsLoading ? 'Loading logs...' : (logs || 'Logs are empty.')}
+      </div>
+      
+      <div style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+        * Logs are stored on the server in <code>backend/logs/error.log</code>
+      </div>
+    </div>
+  );
+
   const SettingsTab = () => (
     <div className="glass-card" style={{ padding: '2rem', maxWidth: 600 }}>
       <h2 style={{ fontWeight: 800, fontSize: '1.2rem', marginBottom: '1.5rem' }}>⚙️ System Settings</h2>
@@ -615,6 +687,7 @@ export default function AdminDashboard() {
         {tab === 'dashboard' && <DashboardTab key="dashboard" />}
         {tab === 'users' && <UsersTab key="users" />}
         {tab === 'settings' && <SettingsTab key="settings" />}
+        {tab === 'logs' && <LogsTab key="logs" />}
       </AnimatePresence>
       <AnimatePresence>
         {selectedReport && (

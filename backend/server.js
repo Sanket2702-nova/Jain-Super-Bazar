@@ -12,19 +12,24 @@ if (!process.env.JWT_SECRET) {
 
 const authRoutes = require('./routes/auth');
 const reportRoutes = require('./routes/reports');
+const logRoutes = require('./routes/logs');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
+const { logError } = require('./logger');
+
 app.use('/api/auth', authRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/logs', logRoutes);
 
 app.use('/uploads', express.static('uploads')); // For proof images
 
 app.use((err, req, res, next) => {
     console.error('CRITICAL GLOBAL ERROR:', err);
+    logError(err, req);
     res.status(500).json({ 
         error: 'Internal Server Error: ' + err.message,
         path: req.path,
