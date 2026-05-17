@@ -681,7 +681,9 @@ export default function AdminDashboard() {
   return (
     <div className="animate-fade-in">
       <div style={{ marginBottom: '1.5rem' }} className="no-print">
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{tab === 'users' ? '👥 Users' : '📊 Dashboard'}</h1>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>
+          {tab === 'users' ? '👥 Users' : tab === 'settings' ? '⚙️ Settings' : tab === 'logs' ? '📜 System Logs' : '📊 Dashboard'}
+        </h1>
       </div>
       <AnimatePresence mode="wait">
         {tab === 'dashboard' && <DashboardTab key="dashboard" />}

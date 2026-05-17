@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   IndianRupee, LayoutDashboard, Users, Settings,
-  LogOut, Menu, X, ChevronRight
+  LogOut, Menu, X, ChevronRight, FileText
 } from 'lucide-react';
 
 export default function AppShell({ children, user }) {
