@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const supabase = require('../supabase');
 const auth = require('../middleware/auth');
+const { logError } = require('../logger');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -53,20 +54,23 @@ router.post('/', auth, upload.any(), async (req, res) => {
                 parsedCheques = typeof cheques === 'string' ? JSON.parse(cheques) : cheques;
             }
         } catch (e) {
+            const parseErr = new Error(`[REPORT SUBMIT] Cheque parse failed for branch_id=${branch_id}, date=${report_date}: ${e.message}`);
+            await logError(parseErr, req);
             console.error('Cheque Parse Error:', e.message);
         }
 
         if (!Array.isArray(parsedCheques)) parsedCheques = [];
         
-        // Strict Validation: If either cheque_no or amount is provided, both must be valid.
+        // Strict Validation
         for (const c of parsedCheques) {
             if ((c.amount && !c.cheque_no) || (!c.amount && c.cheque_no)) {
+                const valErr = new Error(`[REPORT SUBMIT] Incomplete cheque details for branch_id=${branch_id}, date=${report_date}: cheque_no=${c.cheque_no}, amount=${c.amount}`);
+                await logError(valErr, req);
                 return res.status(400).json({ error: 'Incomplete cheque details: Both number and amount are required.' });
             }
         }
 
         const validCheques = parsedCheques.filter(c => c && c.cheque_no && (parseFloat(c.amount) >= 0));
-
 
         let total_cash = 0;
         parsedDenoms.forEach(d => { total_cash += parseFloat(d.total || 0); });
@@ -76,12 +80,10 @@ router.post('/', auth, upload.any(), async (req, res) => {
 
         const grand_total = total_cash + card_upi_total + sodexo_total + credit_note_total + total_cheques + expense;
 
-        // Handle File Uploads (Memory or Disk)
+        // Handle File Uploads
         const getFileUrl = async (file) => {
             if (!file) return null;
             if (process.env.VERCEL) {
-                // For Vercel, you should ideally upload to Supabase Storage
-                // For now, we'll return a placeholder or implement Supabase Storage if bucket exists
                 try {
                     const fileName = `${Date.now()}-${file.originalname}`;
                     const { data, error } = await supabase.storage
@@ -91,6 +93,7 @@ router.post('/', auth, upload.any(), async (req, res) => {
                     const { data: { publicUrl } } = supabase.storage.from('proofs').getPublicUrl(fileName);
                     return publicUrl;
                 } catch (e) {
+                    await logError(new Error(`[FILE UPLOAD] Proof upload failed for branch_id=${branch_id}: ${e.message}`), req);
                     console.error('Supabase Storage Error:', e.message);
                     return null;
                 }
@@ -115,8 +118,7 @@ router.post('/', auth, upload.any(), async (req, res) => {
             expense_desc = JSON.stringify(parsedExpenses);
         }
 
-        // Supabase Insert/Update Logic
-        // 1. Check for existing report
+        // Check for existing report
         const { data: existingReport } = await supabase
             .from('cashreports')
             .select('id')
@@ -145,6 +147,8 @@ router.post('/', auth, upload.any(), async (req, res) => {
 
         if (existingReport) {
             if (req.user.role === 'Branch') {
+                const dupErr = new Error(`[REPORT SUBMIT] Duplicate submission blocked: branch_id=${branch_id}, date=${report_date}, shift=${shift}, user="${req.user.username}"`);
+                await logError(dupErr, req);
                 return res.status(403).json({ error: 'Report already submitted for this shift. You cannot refill it.' });
             }
             reportId = existingReport.id;
@@ -152,18 +156,24 @@ router.post('/', auth, upload.any(), async (req, res) => {
                 .from('cashreports')
                 .update(reportData)
                 .eq('id', reportId);
-            if (updateError) throw updateError;
+            if (updateError) {
+                await logError(new Error(`[REPORT UPDATE] Failed to update report ID=${reportId}: ${updateError.message}`), req);
+                throw updateError;
+            }
         } else {
             const { data: newReport, error: insertError } = await supabase
                 .from('cashreports')
                 .insert(reportData)
                 .select()
                 .single();
-            if (insertError) throw insertError;
+            if (insertError) {
+                await logError(new Error(`[REPORT INSERT] Failed to insert report for branch_id=${branch_id}, date=${report_date}: ${insertError.message}`), req);
+                throw insertError;
+            }
             reportId = newReport.id;
         }
 
-        // 2. Handle Details (Delete and Re-insert)
+        // Handle Details
         await supabase.from('currencydetails').delete().eq('report_id', reportId);
         await supabase.from('cheques').delete().eq('report_id', reportId);
 
@@ -176,7 +186,10 @@ router.post('/', auth, upload.any(), async (req, res) => {
                     quantity: parseInt(d.quantity),
                     total: parseFloat(d.total)
                 })));
-            if (denomError) throw denomError;
+            if (denomError) {
+                await logError(new Error(`[DENOMINATIONS] Failed to save currency details for report ID=${reportId}: ${denomError.message}`), req);
+                throw denomError;
+            }
         }
 
         if (validCheques.length > 0) {
@@ -188,10 +201,13 @@ router.post('/', auth, upload.any(), async (req, res) => {
                     amount: parseFloat(c.amount),
                     cheque_date: c.cheque_date || report_date
                 })));
-            if (chqError) throw chqError;
+            if (chqError) {
+                await logError(new Error(`[CHEQUES] Failed to save cheques for report ID=${reportId}: ${chqError.message}`), req);
+                throw chqError;
+            }
         }
 
-        // 3. Save report backup (Local file) - SKIP ON VERCEL
+        // Local file backup — SKIP ON VERCEL
         if (!process.env.VERCEL) {
             try {
                 const { data: branch } = await supabase.from('branches').select('name').eq('id', branch_id).single();
@@ -232,6 +248,7 @@ router.post('/', auth, upload.any(), async (req, res) => {
                 if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath, { recursive: true });
                 fs.writeFileSync(path.join(folderPath, fileName), lines.join('\n'), 'utf8');
             } catch (fileErr) {
+                await logError(new Error(`[FILE BACKUP] Report file not saved for branch_id=${branch_id}, date=${report_date}: ${fileErr.message}`), req);
                 console.error('File backup error:', fileErr.message);
             }
         }
@@ -239,6 +256,7 @@ router.post('/', auth, upload.any(), async (req, res) => {
         res.json({ message: 'Report submitted successfully', reportId });
     } catch (err) {
         console.error(err);
+        await logError(new Error(`[REPORT SUBMIT CRASH] ${err.message}`), req);
         res.status(500).json({ error: 'Server error: ' + err.message });
     }
 });
@@ -265,7 +283,6 @@ router.get('/', auth, async (req, res) => {
         const { data: reports, error } = await query.order('report_date', { ascending: false });
         if (error) throw error;
 
-        // Flatten branch name and details for frontend compatibility
         const formattedReports = reports.map(r => ({
             ...r,
             branch_name: r.branches ? r.branches.name : `Branch${r.branch_id}`,
@@ -276,6 +293,7 @@ router.get('/', auth, async (req, res) => {
         res.json(formattedReports);
     } catch (err) {
         console.error(err);
+        await logError(new Error(`[GET REPORTS] Failed to fetch reports: ${err.message}`), req);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -292,6 +310,7 @@ router.get('/:id', auth, async (req, res) => {
         if (error || !report) return res.status(404).json({ error: 'Not found' });
 
         if (req.user.role !== 'Admin' && req.user.branch_id !== report.branch_id) {
+            await logError(new Error(`[UNAUTHORIZED] User "${req.user.username}" tried to access report ID=${req.params.id}`), req);
             return res.status(403).json({ error: 'Unauthorized' });
         }
 
@@ -303,6 +322,7 @@ router.get('/:id', auth, async (req, res) => {
         });
     } catch (err) {
         console.error(err);
+        await logError(new Error(`[GET REPORT DETAIL] Failed to fetch report ID=${req.params.id}: ${err.message}`), req);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -315,6 +335,7 @@ router.get('/settings', auth, async (req, res) => {
         if (error) throw error;
         res.json(data);
     } catch (err) {
+        await logError(new Error(`[GET SETTINGS] ${err.message}`), req);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -327,6 +348,7 @@ router.post('/settings', auth, async (req, res) => {
         if (error) throw error;
         res.json({ message: 'Setting updated' });
     } catch (err) {
+        await logError(new Error(`[UPDATE SETTINGS] Failed to update setting "${req.body.key}": ${err.message}`), req);
         res.status(500).json({ error: 'Server error' });
     }
 });

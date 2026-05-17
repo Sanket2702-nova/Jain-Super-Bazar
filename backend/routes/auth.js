@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const supabase = require('../supabase');
+const { logError } = require('../logger');
 
 // Login
 router.post('/login', async (req, res) => {
@@ -18,18 +19,21 @@ router.post('/login', async (req, res) => {
             .single();
         
         if (error || !user) {
-            console.log('User not found or error:', normalizedUsername, error);
+            const err = new Error(`Login failed: User not found — "${normalizedUsername}"`);
+            await logError(err, req);
             return res.status(400).json({ error: 'Invalid username or password' });
         }
 
         if (user.is_blocked) {
-            console.log('User is blocked:', normalizedUsername);
+            const err = new Error(`Login blocked: Account "${normalizedUsername}" is blocked by admin.`);
+            await logError(err, req);
             return res.status(403).json({ error: 'Your account is blocked. Please contact Admin.' });
         }
 
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) {
-            console.log('Invalid password for:', normalizedUsername);
+            const err = new Error(`Login failed: Wrong password for user "${normalizedUsername}"`);
+            await logError(err, req);
             return res.status(400).json({ error: 'Invalid username or password' });
         }
 
@@ -52,6 +56,7 @@ router.post('/login', async (req, res) => {
         res.json({ token, user: { id: user.id, username: user.username, role: user.role, branch_id: user.branch_id, branch_name: branchName } });
     } catch (err) {
         console.error('LOGIN ROUTE CRASH:', err);
+        await logError(new Error(`[LOGIN CRASH] ${err.message}`), req);
         res.status(500).json({ 
             error: 'Server error: ' + err.message,
             details: err.toString(),
@@ -74,7 +79,6 @@ router.get('/users', async (req, res) => {
             
         if (error) throw error;
 
-        // Map branch name for compatibility
         const formattedUsers = users.map(u => ({
             ...u,
             branch_name: u.branches ? u.branches.name : null
@@ -83,6 +87,7 @@ router.get('/users', async (req, res) => {
         res.json(formattedUsers);
     } catch (err) {
         console.error(err);
+        await logError(new Error(`[GET USERS] ${err.message}`), req);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -106,6 +111,7 @@ router.post('/register', async (req, res) => {
         res.json({ message: 'User created successfully' });
     } catch (err) {
         console.error(err);
+        await logError(new Error(`[CREATE USER] Failed to create user "${req.body.username}": ${err.message}`), req);
         res.status(500).json({ error: 'Server error: ' + err.message });
     }
 });
@@ -133,6 +139,7 @@ router.put('/users/:id', async (req, res) => {
         res.json({ message: 'User updated successfully' });
     } catch (err) {
         console.error(err);
+        await logError(new Error(`[UPDATE USER] Failed to update user ID ${req.params.id}: ${err.message}`), req);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -149,6 +156,7 @@ router.delete('/users/:id', async (req, res) => {
         res.json({ message: 'User deleted' });
     } catch (err) {
         console.error(err);
+        await logError(new Error(`[DELETE USER] Failed to delete user ID ${req.params.id}: ${err.message}`), req);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -166,6 +174,7 @@ router.patch('/users/:id/block', async (req, res) => {
         res.json({ message: `User ${is_blocked ? 'blocked' : 'unblocked'}` });
     } catch (err) {
         console.error(err);
+        await logError(new Error(`[BLOCK USER] Failed to update block status for user ID ${req.params.id}: ${err.message}`), req);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -182,6 +191,7 @@ router.get('/branches', async (req, res) => {
         res.json(branches);
     } catch (err) {
         console.error(err);
+        await logError(new Error(`[GET BRANCHES] ${err.message}`), req);
         res.status(500).json({ error: 'Server error' });
     }
 });
