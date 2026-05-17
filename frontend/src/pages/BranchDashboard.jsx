@@ -225,7 +225,6 @@ export default function BranchDashboard() {
                 Shift {s} {submittedShifts.includes(s) && <CheckCircle size={13} color="#34d399"/>}
               </button>
             ))}
-          </div>
         </div>
       </div>
 
