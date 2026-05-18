@@ -28,9 +28,11 @@ export default function BranchDashboard() {
   const [submittedShifts, setSubmittedShifts] = useState([]);
   const [isLocked, setIsLocked] = useState(false);
   const [loading, setLoading] = useState(false);
-   const [message, setMessage] = useState(null); // {type:'success'|'error', text}
-   const [modal, setModal] = useState(null); // {type:'error'|'success', title, text}
-   const [showConfirm, setShowConfirm] = useState(false); // NEW CONFIRMATION STATE
+  const [message, setMessage] = useState(null); // {type:'success'|'error', text}
+  const [modal, setModal] = useState(null); // {type:'error'|'success', title, text}
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [fileSaveState, setFileSaveState] = useState(null); // {reportId, reportHash, aiAnalysis, fileContent, fileName}
+  const [successModal, setSuccessModal] = useState(null); // {shift, date, grandTotal, reportHash, riskLevel}
 
 
   const [denoms, setDenoms] = useState(DENOMS.map(d => ({ denomination:d, quantity:0, total:0 })));
@@ -84,7 +86,8 @@ export default function BranchDashboard() {
     setCheques([{cheque_no:'',amount:'',cheque_date:''}]);
   };
 
-  const downloadTxt = async () => {
+  // Returns true if file was saved, false if cancelled
+  const downloadTxt = async (extraLines = []) => {
     const lines = [
       '     JAIN SUPER BAZAR',`     DAILY CASH REPORT`,`========================================`,
       `Branch   : ${user.branch_name}`,`Date     : ${formatDate(date)} (Shift ${shift})`,
@@ -108,18 +111,62 @@ export default function BranchDashboard() {
       `  Total Expenses     : ₹ ${totalExp.toFixed(2)}`,`========================================`,
       `  GRAND TOTAL        : ₹ ${grandTotal.toFixed(2)}`,`========================================`,
       `Submitted at: ${new Date().toLocaleString()}`,
+      ...extraLines,
     ];
     const content = lines.join('\n');
     const fname = `${(user.branch_name||'branch').toLowerCase().replace(/\s+/g,'_')}_s${shift}_${formatDate(date)}.txt`;
     if ('showSaveFilePicker' in window) {
       try {
         const h = await window.showSaveFilePicker({ suggestedName:fname, types:[{description:'Text',accept:{'text/plain':['.txt']}}] });
-        const w = await h.createWritable(); await w.write(content); await w.close(); return;
-      } catch {}
+        const w = await h.createWritable(); await w.write(content); await w.close();
+        return true; // saved successfully
+      } catch (err) {
+        if (err.name === 'AbortError') return false; // user cancelled
+        // fallthrough to anchor download
+      }
     }
+    // Fallback: anchor download (browser handles it — treat as saved)
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([content],{type:'text/plain'}));
     a.download = fname; a.click();
+    return true; // anchor download always succeeds
+  };
+
+  // Call backend to verify and audit-log the file save
+  const verifySaveWithBackend = async (reportId, reportHash) => {
+    try {
+      await axios.post(`${API}/reports/verify-save`, {
+        reportId,
+        reportHash,
+        savedAt: new Date().toISOString(),
+      }, { headers: headers() });
+    } catch (e) {
+      console.warn('Verify-save call failed (non-critical):', e.message);
+    }
+  };
+
+  // Retry file save — called from the blocking enforcement modal
+  const retrySaveFile = async () => {
+    if (!fileSaveState) return;
+    const { reportId, reportHash, aiAnalysis } = fileSaveState;
+    const extraLines = [
+      `----------------------------------------`,
+      `AI INTEGRITY CHECK`,
+      `  Report Hash  : ${reportHash}`,
+      `  Risk Level   : ${aiAnalysis?.riskLevel || 'CLEAR'}`,
+      `  Verified At  : ${aiAnalysis?.timestamp || new Date().toISOString()}`,
+      `========================================`,
+    ];
+    const saved = await downloadTxt(extraLines);
+    if (saved) {
+      await verifySaveWithBackend(reportId, reportHash);
+      setFileSaveState(null);
+      setSuccessModal({ shift, date, grandTotal, reportHash, riskLevel: aiAnalysis?.riskLevel || 'CLEAR' });
+      setSubmittedShifts(p => [...p, shift]);
+      if (shift===1) { setShift(2); resetForm(); setIsLocked(false); }
+      else setIsLocked(true);
+    }
+    // If still cancelled, modal stays open
   };
 
   const handleSubmit = (e) => {
@@ -161,19 +208,56 @@ export default function BranchDashboard() {
     fd.append('cheques', JSON.stringify(cheques.filter(c=>c.cheque_no&&c.amount)));
     if (cardProof) fd.append('card_upi_proof', cardProof);
     try {
-      await axios.post(`${API}/reports`, fd, { headers:{...headers(),'Content-Type':'multipart/form-data'} });
-      await downloadTxt();
-      setMessage({type:'success', text:`✅ Shift ${shift} report submitted & saved!`});
+      const res = await axios.post(`${API}/reports`, fd, { headers:{...headers(),'Content-Type':'multipart/form-data'} });
+      const { reportId, reportHash, aiAnalysis } = res.data;
+
+      // Build AI extra lines for the .txt file
+      const extraLines = reportHash ? [
+        `----------------------------------------`,
+        `AI INTEGRITY CHECK`,
+        `  Report Hash  : ${reportHash}`,
+        `  Risk Level   : ${aiAnalysis?.riskLevel || 'CLEAR'}`,
+        `  Verified At  : ${aiAnalysis?.timestamp || new Date().toISOString()}`,
+        `========================================`,
+      ] : [];
+
+      // Attempt to save the file
+      const saved = await downloadTxt(extraLines);
+
+      if (!saved) {
+        // File save was cancelled — store state and show blocking enforcement modal
+        setFileSaveState({ reportId, reportHash, aiAnalysis });
+        setLoading(false);
+        return; // Do NOT mark as submitted until file is saved
+      }
+
+      // File was saved — confirm with backend
+      if (reportId && reportHash) {
+        await verifySaveWithBackend(reportId, reportHash);
+      }
+
+      setSuccessModal({ shift, date, grandTotal, reportHash, riskLevel: aiAnalysis?.riskLevel || 'CLEAR' });
       setSubmittedShifts(p => [...p, shift]);
       if (shift===1) { setShift(2); resetForm(); setIsLocked(false); }
       else setIsLocked(true);
     } catch(err) {
       console.error('Submit report error:', err);
       const errorData = err.response?.data?.error || err.response?.data;
+      const aiAnalysis = err.response?.data?.aiAnalysis;
       const errorMessage = typeof errorData === 'object' 
         ? (errorData.message || JSON.stringify(errorData)) 
         : (errorData || err.message || 'Error submitting report');
-      setMessage({type:'error', text: 'Error: ' + errorMessage});
+
+      if (err.response?.status === 422 && aiAnalysis) {
+        // AI validation blocked the report
+        setModal({
+          type: 'error',
+          title: '🤖 AI Integrity Check Failed',
+          text: `This report was blocked because it triggered high-risk anomalies:\n${aiAnalysis.violations?.map(v => `• ${v.description}`).join('\n') || errorMessage}`,
+        });
+      } else {
+        setMessage({type:'error', text: 'Error: ' + errorMessage});
+      }
     } finally { setLoading(false); }
   };
 
@@ -473,6 +557,215 @@ export default function BranchDashboard() {
                 onClick={() => setModal(null)}
               >
                 Understood
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ══════════════════════════════════════════════════ */}
+      {/* ── BIG SUCCESS POPUP MODAL ── */}
+      <AnimatePresence>
+        {successModal && (
+          <div className="modal-overlay" onClick={() => setSuccessModal(null)}>
+            <motion.div
+              initial={{ scale: 0.7, opacity: 0, y: 40 }}
+              animate={{ scale: 1, opacity: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 20 } }}
+              exit={{ scale: 0.8, opacity: 0, y: 30 }}
+              className="modal-box"
+              style={{
+                maxWidth: 480,
+                textAlign: 'center',
+                borderTop: '5px solid #34d399',
+                background: 'linear-gradient(145deg, rgba(10,20,40,0.99), rgba(15,30,55,0.99))',
+                padding: '2.5rem 2rem',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Glow ring behind icon */}
+              <div style={{
+                position: 'absolute', top: -60, left: '50%', transform: 'translateX(-50%)',
+                width: 200, height: 200, borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(52,211,153,0.18) 0%, transparent 70%)',
+                pointerEvents: 'none',
+              }} />
+
+              {/* Animated checkmark */}
+              <motion.div
+                initial={{ scale: 0, rotate: -30 }}
+                animate={{ scale: 1, rotate: 0, transition: { delay: 0.15, type: 'spring', stiffness: 300 } }}
+                style={{ fontSize: '5rem', marginBottom: '0.5rem', lineHeight: 1 }}
+              >
+                ✅
+              </motion.div>
+
+              <motion.h2
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0, transition: { delay: 0.25 } }}
+                style={{
+                  fontFamily: 'var(--font-heading)', fontWeight: 900,
+                  fontSize: '1.7rem', color: '#34d399', marginBottom: '0.3rem',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                Report Submitted!
+              </motion.h2>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1, transition: { delay: 0.35 } }}
+                style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '1.5rem' }}
+              >
+                {user.branch_name} &nbsp;•&nbsp; {formatDate(successModal.date)} &nbsp;•&nbsp;
+                <strong style={{ color: '#a5b4fc' }}>Shift {successModal.shift}</strong>
+              </motion.p>
+
+              {/* Grand Total Hero */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1, transition: { delay: 0.4 } }}
+                style={{
+                  background: 'linear-gradient(135deg, rgba(52,211,153,0.12), rgba(99,102,241,0.12))',
+                  border: '1px solid rgba(52,211,153,0.3)',
+                  borderRadius: 14, padding: '1.1rem 1.5rem', marginBottom: '1.25rem',
+                }}
+              >
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Grand Total</p>
+                <p style={{ fontFamily: 'var(--font-heading)', fontWeight: 900, fontSize: '2.2rem', color: '#34d399', margin: 0 }}>
+                  ₹ {successModal.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </p>
+              </motion.div>
+
+              {/* AI Badge */}
+              {successModal.reportHash && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1, transition: { delay: 0.5 } }}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    gap: 10, background: 'rgba(165,180,252,0.08)',
+                    border: '1px solid rgba(165,180,252,0.2)', borderRadius: 10,
+                    padding: '0.6rem 1rem', marginBottom: '1.5rem',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <span style={{ fontSize: '0.8rem' }}>🔐</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600 }}>AI Hash:</span>
+                  <span style={{ color: '#a5b4fc', fontFamily: 'monospace', fontSize: '0.8rem', fontWeight: 700 }}>{successModal.reportHash}</span>
+                  <span style={{
+                    fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px',
+                    borderRadius: 20, background: 'rgba(52,211,153,0.15)',
+                    color: '#34d399', border: '1px solid rgba(52,211,153,0.3)',
+                  }}>✔ {successModal.riskLevel}</span>
+                </motion.div>
+              )}
+
+              {/* File saved note */}
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1, transition: { delay: 0.55 } }}
+                style={{ color: '#6ee7b7', fontSize: '0.82rem', marginBottom: '1.75rem', fontWeight: 600 }}
+              >
+                💾 Report file saved to your device
+              </motion.p>
+
+              <motion.button
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0, transition: { delay: 0.6 } }}
+                className="btn-primary"
+                style={{
+                  width: '100%', padding: '0.9rem',
+                  background: 'linear-gradient(135deg, #34d399, #059669)',
+                  fontSize: '1rem', fontWeight: 800, letterSpacing: '0.03em',
+                  boxShadow: '0 6px 24px rgba(52,211,153,0.35)',
+                }}
+                onClick={() => setSuccessModal(null)}
+              >
+                Done 🎉
+              </motion.button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── AI ENFORCEMENT: File Save Blocking Modal ── */}
+      <AnimatePresence>
+        {fileSaveState && (
+          <div className="modal-overlay">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0, y: 20 }}
+              className="modal-box"
+              style={{
+                maxWidth: 500, textAlign: 'center',
+                borderTop: '5px solid #f59e0b',
+                background: 'linear-gradient(135deg, rgba(15,15,30,0.98), rgba(25,20,50,0.98))'
+              }}
+            >
+              <div style={{ fontSize: '3.5rem', marginBottom: '0.75rem' }}>🤖</div>
+              <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.4rem', marginBottom: '0.5rem', color: '#fbbf24' }}>
+                File Save Required
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '1rem', fontSize: '0.95rem' }}>
+                The AI system has verified your report, but the <strong style={{color:'#fff'}}>file was not saved</strong>.
+                You must save the report file to complete the submission.
+              </p>
+
+              {/* AI Analysis Badge */}
+              <div style={{
+                background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)',
+                borderRadius: 10, padding: '0.75rem 1rem', marginBottom: '1.25rem', textAlign: 'left'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <span style={{ fontSize: '1rem' }}>🔐</span>
+                  <span style={{ fontWeight: 700, color: '#fbbf24', fontSize: '0.85rem', letterSpacing: '0.05em' }}>AI INTEGRITY REPORT</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem 1rem', fontSize: '0.8rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Report Hash</span>
+                  <span style={{ color: '#a5b4fc', fontFamily: 'monospace', fontWeight: 700 }}>
+                    {fileSaveState.reportHash || '—'}
+                  </span>
+                  <span style={{ color: 'var(--text-muted)' }}>Risk Level</span>
+                  <span style={{
+                    fontWeight: 700,
+                    color: fileSaveState.aiAnalysis?.riskLevel === 'CLEAR' ? '#34d399'
+                         : fileSaveState.aiAnalysis?.riskLevel === 'LOW' ? '#60a5fa'
+                         : fileSaveState.aiAnalysis?.riskLevel === 'MEDIUM' ? '#fbbf24'
+                         : '#f87171'
+                  }}>
+                    {fileSaveState.aiAnalysis?.riskLevel || 'CLEAR'}
+                  </span>
+                  <span style={{ color: 'var(--text-muted)' }}>Report ID</span>
+                  <span style={{ color: '#fff', fontWeight: 700 }}>#{fileSaveState.reportId}</span>
+                  <span style={{ color: 'var(--text-muted)' }}>Verified At</span>
+                  <span style={{ color: '#fff' }}>{new Date(fileSaveState.aiAnalysis?.timestamp || Date.now()).toLocaleTimeString()}</span>
+                </div>
+                {fileSaveState.aiAnalysis?.violations?.length > 0 && (
+                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(245,158,11,0.2)' }}>
+                    <p style={{ color: '#fbbf24', fontSize: '0.78rem', fontWeight: 700, marginBottom: 4 }}>WARNINGS DETECTED:</p>
+                    {fileSaveState.aiAnalysis.violations.map((v, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 6, fontSize: '0.77rem', marginBottom: 3 }}>
+                        <span style={{ color: v.severity === 'HIGH' ? '#f87171' : v.severity === 'MEDIUM' ? '#fbbf24' : '#60a5fa' }}>⚠</span>
+                        <span style={{ color: 'var(--text-secondary)' }}>{v.description}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <p style={{ color: '#f87171', fontSize: '0.85rem', fontWeight: 600, marginBottom: '1.5rem' }}>
+                ⚠️ This modal cannot be closed until the file is saved.
+              </p>
+
+              <button
+                className="btn-primary"
+                style={{ width: '100%', padding: '0.9rem', fontSize: '1rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
+                onClick={retrySaveFile}
+              >
+                💾 Save Report File Now
               </button>
             </motion.div>
           </div>

@@ -3,6 +3,7 @@ const router = express.Router();
 const supabase = require('../supabase');
 const auth = require('../middleware/auth');
 const { logError } = require('../logger');
+const { validateReport } = require('../aiValidator');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -70,6 +71,40 @@ router.post('/', auth, upload.any(), async (req, res) => {
             }
         }
 
+        // ── AI/ML Anomaly Detection ─────────────────────────────────
+        let parsedExpenses = [];
+        try { parsedExpenses = JSON.parse(expense_desc || '[]'); } catch {}
+
+        const aiResult = validateReport({
+            branch_id,
+            report_date,
+            shift,
+            system_total,
+            total_cash: parsedDenoms.reduce((a, d) => a + parseFloat(d.total || 0), 0),
+            card_upi_total,
+            sodexo_total,
+            credit_note_total,
+            cheque_total: parsedCheques.filter(c => c && c.cheque_no && parseFloat(c.amount) >= 0).reduce((a, c) => a + parseFloat(c.amount || 0), 0),
+            expense,
+            grand_total: parsedDenoms.reduce((a, d) => a + parseFloat(d.total || 0), 0) + card_upi_total + sodexo_total + credit_note_total + parsedCheques.filter(c => c && c.cheque_no).reduce((a, c) => a + parseFloat(c.amount || 0), 0) + expense,
+            cheques: parsedCheques,
+            expenses: parsedExpenses,
+        });
+
+        // Block HIGH-risk reports that fail validation
+        if (!aiResult.isValid) {
+            const aiErr = new Error(`[AI VALIDATION] HIGH-risk report blocked for branch_id=${branch_id}, date=${report_date}: ${aiResult.violations.map(v => v.rule_id).join(', ')}`);
+            await logError(aiErr, req);
+            return res.status(422).json({
+                error: 'Report blocked by AI Integrity Check.',
+                aiAnalysis: aiResult,
+            });
+        }
+
+        if (aiResult.riskLevel !== 'CLEAR') {
+            console.warn(`[AI WARNING] Risk=${aiResult.riskLevel} | Hash=${aiResult.reportHash} | branch=${branch_id} | date=${report_date}`);
+        }
+
         const validCheques = parsedCheques.filter(c => c && c.cheque_no && (parseFloat(c.amount) >= 0));
 
         let total_cash = 0;
@@ -104,9 +139,9 @@ router.post('/', auth, upload.any(), async (req, res) => {
         const card_upi_proof_file = req.files && req.files.find(f => f.fieldname === 'card_upi_proof');
         const card_upi_proof_url = await getFileUrl(card_upi_proof_file);
 
-        let parsedExpenses = [];
+        // Re-parse parsedExpenses (already done in AI block above, now handle proofs)
         try { parsedExpenses = JSON.parse(expense_desc); } catch {}
-        
+
         if (Array.isArray(parsedExpenses)) {
             for (let idx = 0; idx < parsedExpenses.length; idx++) {
                 const exp = parsedExpenses[idx];
@@ -217,7 +252,8 @@ router.post('/', auth, upload.any(), async (req, res) => {
 
                 const lines = [
                     `========================================`,
-                    `     DAILY CASH REPORT (SUPABASE)`,
+                    `     JAIN SUPER BAZAR`,
+                    `     DAILY CASH REPORT`,
                     `========================================`,
                     `Branch   : ${branchName}`,
                     `Date     : ${formatDate(report_date)} (Shift ${shift})`,
@@ -242,18 +278,46 @@ router.post('/', auth, upload.any(), async (req, res) => {
                     `  GRAND TOTAL        : ₹ ${grand_total.toFixed(2)}`,
                     `========================================`,
                     `Submitted at: ${new Date().toLocaleString()}`,
+                    `----------------------------------------`,
+                    `AI INTEGRITY CHECK`,
+                    `  Report Hash  : ${aiResult.reportHash}`,
+                    `  Risk Level   : ${aiResult.riskLevel}`,
+                    `  Verified At  : ${aiResult.timestamp}`,
+                    `========================================`,
                 ];
 
                 const fileName = `${branchName.toLowerCase()}_s${shift}_${formatDate(report_date)}.txt`;
                 if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath, { recursive: true });
-                fs.writeFileSync(path.join(folderPath, fileName), lines.join('\n'), 'utf8');
+                // Retry file save up to 3 times
+                let saved = false;
+                for (let attempt = 1; attempt <= 3; attempt++) {
+                    try {
+                        fs.writeFileSync(path.join(folderPath, fileName), lines.join('\n'), 'utf8');
+                        saved = true;
+                        break;
+                    } catch (writeErr) {
+                        if (attempt === 3) throw writeErr;
+                        await new Promise(r => setTimeout(r, 300 * attempt));
+                    }
+                }
+                if (!saved) throw new Error('File write failed after 3 attempts');
             } catch (fileErr) {
                 await logError(new Error(`[FILE BACKUP] Report file not saved for branch_id=${branch_id}, date=${report_date}: ${fileErr.message}`), req);
                 console.error('File backup error:', fileErr.message);
             }
         }
 
-        res.json({ message: 'Report submitted successfully', reportId });
+        res.json({
+            message: 'Report submitted successfully',
+            reportId,
+            reportHash: aiResult.reportHash,
+            aiAnalysis: {
+                riskLevel: aiResult.riskLevel,
+                riskScore: aiResult.riskScore,
+                violations: aiResult.violations,
+                timestamp: aiResult.timestamp,
+            },
+        });
     } catch (err) {
         console.error(err);
         await logError(new Error(`[REPORT SUBMIT CRASH] ${err.message}`), req);
@@ -350,6 +414,51 @@ router.post('/settings', auth, async (req, res) => {
     } catch (err) {
         await logError(new Error(`[UPDATE SETTINGS] Failed to update setting "${req.body.key}": ${err.message}`), req);
         res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ── Verify Save Endpoint ─────────────────────────────────────────────────
+// Frontend calls this after successfully saving the .txt file to confirm
+// the file-save loop is complete and log the confirmation audit trail.
+router.post('/verify-save', auth, async (req, res) => {
+    try {
+        const { reportId, reportHash, savedAt } = req.body;
+        if (!reportId || !reportHash) {
+            return res.status(400).json({ error: 'reportId and reportHash are required.' });
+        }
+
+        // Fetch the report to cross-validate
+        const { data: report, error } = await supabase
+            .from('cashreports')
+            .select('id, branch_id, report_date, shift, grand_total, total_cash, card_upi_total, sodexo_total, credit_note_total, cheque_total, expense, system_total')
+            .eq('id', reportId)
+            .single();
+
+        if (error || !report) {
+            return res.status(404).json({ error: 'Report not found.' });
+        }
+
+        const { generateReportHash } = require('../aiValidator');
+        const expectedHash = generateReportHash(report);
+
+        if (expectedHash !== reportHash) {
+            await logError(
+                new Error(`[VERIFY SAVE] Hash mismatch for report ID=${reportId}. Expected=${expectedHash}, Got=${reportHash}`),
+                req
+            );
+            return res.status(409).json({ error: 'Report hash mismatch. File integrity could not be verified.' });
+        }
+
+        // Log the confirmed save to Supabase audit table (if it exists) or error_logs
+        await logError(
+            Object.assign(new Error(`[SAVE CONFIRMED] Report ID=${reportId} | Hash=${reportHash} | SavedAt=${savedAt || new Date().toISOString()} | User=${req.user?.username}`), { stack: 'SAVE_CONFIRMATION_AUDIT' }),
+            req
+        ).catch(() => {});
+
+        res.json({ verified: true, reportId, reportHash });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Verification failed: ' + err.message });
     }
 });
 
