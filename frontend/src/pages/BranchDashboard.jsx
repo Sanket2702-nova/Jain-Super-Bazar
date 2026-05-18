@@ -339,7 +339,7 @@ export default function BranchDashboard() {
         </motion.div>
       ) : (
         <form onSubmit={handleSubmit}>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(340px,1fr))', gap:20, marginTop:'1.5rem' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(340px,1fr))', gap:20, marginTop:'5px' }}>
 
             {/* ── Cash Denominations ── */}
             <div className="glass-card">
