@@ -333,7 +333,6 @@ export default function AdminDashboard() {
             </div>
             <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
               <p style={{ margin: 0, fontSize: '9pt', fontWeight: 'bold' }}>Date: {getTodayIST()}</p>
-              <p style={{ margin: 0, fontSize: '8pt', color: '#666' }}>Generated on: {new Date().toLocaleTimeString()}</p>
             </div>
           </div>
           <table className="photo-exact-ledger">
