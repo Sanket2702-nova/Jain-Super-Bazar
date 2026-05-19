@@ -325,7 +325,6 @@ export default function AdminDashboard() {
       <div className={`print-template print-active`}>
         <div style={{ padding: '30px', background: 'white', color: 'black' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px', borderBottom: '2px solid #000', paddingBottom: '15px' }}>
-            <img src="/logo.png" alt="Logo" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
             <div>
               <h1 style={{ margin: 0, fontSize: '18pt', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Jain Super Bazar</h1>
               <p style={{ margin: 0, fontSize: '10pt', color: '#333', fontWeight: 600 }}>
