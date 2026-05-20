@@ -23,7 +23,7 @@ const RULES = [
     {
         id: 'RULE_LARGE_DIFF',
         description: 'Grand total differs from system total by more than ₹500',
-        severity: 'HIGH',
+        severity: 'LOW',
         check: (d) => Math.abs(d.grand_total - d.system_total) > 500,
     },
     {

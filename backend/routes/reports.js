@@ -91,7 +91,8 @@ router.post('/', auth, upload.any(), async (req, res) => {
             expenses: parsedExpenses,
         });
 
-        // Block HIGH-risk reports that fail validation
+        // Block HIGH-risk reports that fail validation (DISABLED)
+        /*
         if (!aiResult.isValid) {
             const aiErr = new Error(`[AI VALIDATION] HIGH-risk report blocked for branch_id=${branch_id}, date=${report_date}: ${aiResult.violations.map(v => v.rule_id).join(', ')}`);
             await logError(aiErr, req);
@@ -100,6 +101,7 @@ router.post('/', auth, upload.any(), async (req, res) => {
                 aiAnalysis: aiResult,
             });
         }
+        */
 
         if (aiResult.riskLevel !== 'CLEAR') {
             console.warn(`[AI WARNING] Risk=${aiResult.riskLevel} | Hash=${aiResult.reportHash} | branch=${branch_id} | date=${report_date}`);
