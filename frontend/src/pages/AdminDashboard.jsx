@@ -35,17 +35,6 @@ export default function AdminDashboard() {
   const [rawReports, setRawReports] = useState([]);
   const [users, setUsers] = useState([]);
   const [allBranches, setAllBranches] = useState([]);
-
-  const branchNames = useMemo(() => {
-    return [...new Set(rawReports.map(r => r.branch_name).filter(Boolean))];
-  }, [rawReports]);
-
-  const reports = useMemo(() => {
-    let filteredData = rawReports;
-    if (branchFilter) filteredData = filteredData.filter(r => r.branch_name === branchFilter);
-    if (shiftFilter) filteredData = filteredData.filter(r => r.shift === parseInt(shiftFilter));
-    return filteredData;
-  }, [rawReports, branchFilter, shiftFilter]);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState(getTodayIST()); // START DATE
   const [endDateFilter, setEndDateFilter] = useState(getTodayIST()); // END DATE
@@ -63,6 +52,17 @@ export default function AdminDashboard() {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [logs, setLogs] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
+
+  const branchNames = useMemo(() => {
+    return [...new Set(rawReports.map(r => r.branch_name).filter(Boolean))];
+  }, [rawReports]);
+
+  const reports = useMemo(() => {
+    let filteredData = rawReports;
+    if (branchFilter) filteredData = filteredData.filter(r => r.branch_name === branchFilter);
+    if (shiftFilter) filteredData = filteredData.filter(r => r.shift === parseInt(shiftFilter));
+    return filteredData;
+  }, [rawReports, branchFilter, shiftFilter]);
 
   useEffect(() => {
     fetchReports();
