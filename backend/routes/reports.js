@@ -64,10 +64,12 @@ router.post('/', auth, upload.any(), async (req, res) => {
         
         // Strict Validation
         for (const c of parsedCheques) {
-            if ((c.amount && !c.cheque_no) || (!c.amount && c.cheque_no)) {
-                const valErr = new Error(`[REPORT SUBMIT] Incomplete cheque details for branch_id=${branch_id}, date=${report_date}: cheque_no=${c.cheque_no}, amount=${c.amount}`);
-                await logError(valErr, req);
-                return res.status(400).json({ error: 'Incomplete cheque details: Both number and amount are required.' });
+            if (c && (c.amount || c.cheque_no || c.cheque_date)) {
+                if (!c.amount || !c.cheque_no || !c.cheque_date) {
+                    const valErr = new Error(`[REPORT SUBMIT] Incomplete cheque details for branch_id=${branch_id}, date=${report_date}: cheque_no=${c.cheque_no}, amount=${c.amount}, cheque_date=${c.cheque_date}`);
+                    await logError(valErr, req);
+                    return res.status(400).json({ error: 'Incomplete cheque details: Cheque Number, Amount, and Date are all required.' });
+                }
             }
         }
 

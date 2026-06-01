@@ -174,12 +174,12 @@ export default function BranchDashboard() {
     if (!systemTotal) { setMessage({type:'error',text:'System Total is required!'}); return; }
     
     // Validate Cheques
-    const incompleteCheque = cheques.find(c => (c.amount && !c.cheque_no) || (!c.amount && c.cheque_no));
+    const incompleteCheque = cheques.find(c => (c.amount || c.cheque_no || c.cheque_date) && (!c.amount || !c.cheque_no || !c.cheque_date));
     if (incompleteCheque) {
       setModal({
         type: 'error',
         title: 'Incomplete Cheque Data',
-        text: '⚠️ Both Cheque Number and Amount are required for any cheque entry you add.'
+        text: '⚠️ Cheque Number, Amount, and Date are all required for any cheque entry you add.'
       });
       return;
     }
@@ -205,7 +205,7 @@ export default function BranchDashboard() {
     fd.append('expense_desc', JSON.stringify(validExp.map(e=>({amount:e.amount,desc:e.desc}))));
     validExp.forEach((e,i) => { if(e.proof) fd.append(`expense_proof_${i}`, e.proof); });
     fd.append('denominations', JSON.stringify(denoms.filter(d=>d.quantity>0)));
-    fd.append('cheques', JSON.stringify(cheques.filter(c=>c.cheque_no&&c.amount)));
+    fd.append('cheques', JSON.stringify(cheques.filter(c=>c.cheque_no&&c.amount&&c.cheque_date)));
     if (cardProof) fd.append('card_upi_proof', cardProof);
     try {
       const res = await axios.post(`${API}/reports`, fd, { headers:{...headers(),'Content-Type':'multipart/form-data'} });
