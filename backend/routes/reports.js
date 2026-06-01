@@ -330,9 +330,17 @@ router.post('/', auth, upload.any(), async (req, res) => {
 // Get all reports
 router.get('/', auth, async (req, res) => {
     try {
+        const isBranchUser = req.user.role === 'Branch';
+        const excludeDetails = req.query.exclude_details === 'true' || isBranchUser;
+
+        let selectFields = '*, branches(name), currencydetails(*), cheques(*)';
+        if (excludeDetails) {
+            selectFields = 'id, branch_id, report_date, system_total, card_upi_total, card_upi_proof_url, sodexo_total, credit_note_total, expense, expense_desc, total_cash, cheque_total, bill_amount, grand_total, shift, created_at';
+        }
+
         let query = supabase
             .from('cashreports')
-            .select('*, branches(name), currencydetails(*), cheques(*)');
+            .select(selectFields);
 
         if (req.user.role === 'Branch') {
             query = query.eq('branch_id', req.user.branch_id);

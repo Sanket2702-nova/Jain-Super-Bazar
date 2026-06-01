@@ -50,7 +50,7 @@ export default function BranchDashboard() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await axios.get(`${API}/reports?date=${date}`, { headers:headers() });
+        const res = await axios.get(`${API}/reports?date=${date}&exclude_details=true`, { headers:headers() });
         const reports = Array.isArray(res.data) ? res.data : [];
         const done = reports.map(r => r.shift);
         setSubmittedShifts(done);
