@@ -23,8 +23,13 @@ const formatDate = (dateStr) => {
 
 export default function BranchDashboard() {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const [date, setDate] = useState(IST_DATE());
-  const [shift, setShift] = useState(1);
+  const [date, setDate] = useState(() => {
+    return localStorage.getItem('cash_report_current_date') || IST_DATE();
+  });
+  const [shift, setShift] = useState(() => {
+    const savedShift = localStorage.getItem('cash_report_current_shift');
+    return savedShift ? parseInt(savedShift) : 1;
+  });
   const [submittedShifts, setSubmittedShifts] = useState([]);
   const [isLocked, setIsLocked] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -63,6 +68,85 @@ export default function BranchDashboard() {
       } catch(e) { console.error(e); }
     })();
   }, [date, shift]);
+
+  // Persist current date and shift to localStorage
+  useEffect(() => {
+    localStorage.setItem('cash_report_current_date', date);
+  }, [date]);
+
+  useEffect(() => {
+    localStorage.setItem('cash_report_current_shift', shift.toString());
+  }, [shift]);
+
+  // Helper to clear draft from localStorage
+  const clearDraft = (d, s) => {
+    if (user.branch_id) {
+      localStorage.removeItem(`cash_report_draft_${user.branch_id}_${d}_${s}`);
+    }
+  };
+
+  // Helper to determine if form is dirty (has entered data)
+  const isFormDirty = () => {
+    const hasDenoms = denoms.some(d => d.quantity > 0);
+    const hasExpenses = expenses.some(e => e.amount || e.desc);
+    const hasCheques = cheques.some(c => c.cheque_no || c.amount || c.cheque_date);
+    return hasDenoms || systemTotal || cardUpi || sodexo || creditNote || billAmount || hasExpenses || hasCheques;
+  };
+
+  // Load draft on date/shift change
+  useEffect(() => {
+    if (!user.branch_id) return;
+    const draftKey = `cash_report_draft_${user.branch_id}_${date}_${shift}`;
+    const savedDraft = localStorage.getItem(draftKey);
+    if (savedDraft) {
+      try {
+        const parsed = JSON.parse(savedDraft);
+        setDenoms(parsed.denoms || DENOMS.map(d => ({ denomination:d, quantity:0, total:0 })));
+        setSystemTotal(parsed.systemTotal || '');
+        setCardUpi(parsed.cardUpi || '');
+        setSodexo(parsed.sodexo || '');
+        setCreditNote(parsed.creditNote || '');
+        setBillAmount(parsed.billAmount || '');
+        setUpiTotal(parsed.upiTotal || '');
+        setCardTotal(parsed.cardTotal || '');
+        const restoredExpenses = (parsed.expenses || [{ amount:'', desc:'' }]).map(e => ({
+          amount: e.amount || '',
+          desc: e.desc || '',
+          proof: null
+        }));
+        setExpenses(restoredExpenses);
+        setCheques(parsed.cheques || [{ cheque_no:'', amount:'', cheque_date:'' }]);
+      } catch (e) {
+        console.error('Error parsing draft:', e);
+      }
+    } else {
+      resetForm();
+    }
+  }, [user.branch_id, date, shift]);
+
+  // Save draft on state changes
+  useEffect(() => {
+    if (!user.branch_id) return;
+    const draftKey = `cash_report_draft_${user.branch_id}_${date}_${shift}`;
+
+    if (isFormDirty()) {
+      const draftData = {
+        denoms,
+        systemTotal,
+        cardUpi,
+        sodexo,
+        creditNote,
+        billAmount,
+        upiTotal,
+        cardTotal,
+        expenses: expenses.map(e => ({ amount: e.amount, desc: e.desc })),
+        cheques
+      };
+      localStorage.setItem(draftKey, JSON.stringify(draftData));
+    } else {
+      localStorage.removeItem(draftKey);
+    }
+  }, [user.branch_id, date, shift, denoms, systemTotal, cardUpi, sodexo, creditNote, billAmount, upiTotal, cardTotal, expenses, cheques]);
 
   const totalCash = denoms.reduce((a,d) => a+d.total, 0);
   const totalExp  = expenses.reduce((a,e) => a+parseFloat(e.amount||0), 0);
@@ -161,6 +245,7 @@ export default function BranchDashboard() {
     if (saved) {
       await verifySaveWithBackend(reportId, reportHash);
       setFileSaveState(null);
+      clearDraft(date, shift);
       setSuccessModal({ shift, date, grandTotal, reportHash, riskLevel: aiAnalysis?.riskLevel || 'CLEAR' });
       setSubmittedShifts(p => [...p, shift]);
       if (shift===1) { setShift(2); resetForm(); setIsLocked(false); }
@@ -236,6 +321,7 @@ export default function BranchDashboard() {
         await verifySaveWithBackend(reportId, reportHash);
       }
 
+      clearDraft(date, shift);
       setSuccessModal({ shift, date, grandTotal, reportHash, riskLevel: aiAnalysis?.riskLevel || 'CLEAR' });
       setSubmittedShifts(p => [...p, shift]);
       if (shift===1) { setShift(2); resetForm(); setIsLocked(false); }
